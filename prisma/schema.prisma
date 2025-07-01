@@ -1,0 +1,207 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("trader")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trades Trade[]
+  
+  @@map("users")
+}
+
+model Commodity {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  type                CommodityType
+  unit                String
+  currentPrice        Float
+  priceChange         Float
+  priceChangePercent  Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  trades        Trade[]
+  inventory     InventoryItem[]
+  contracts     Contract[]
+  shipments     Shipment[]
+
+  @@map("commodities")
+}
+
+model Trade {
+  id             String      @id @default(cuid())
+  commodityId    String
+  type           TradeType
+  quantity       Int
+  price          Float
+  totalValue     Float
+  counterpartyId String
+  counterparty   Counterparty @relation(fields: [counterpartyId], references: [id])
+  status         TradeStatus @default(OPEN)
+  tradeDate      DateTime    @default(now())
+  settlementDate DateTime
+  location       String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  userId         String?
+
+  commodity Commodity @relation(fields: [commodityId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  shipments Shipment[]
+
+  @@map("trades")
+}
+
+model InventoryItem {
+  id           String   @id @default(cuid())
+  commodityId  String
+  quantity     Int
+  unit         String
+  warehouse    String
+  location     String
+  quality      String
+  costBasis    Float
+  marketValue  Float
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  commodity Commodity @relation(fields: [commodityId], references: [id])
+
+  @@map("inventory_items")
+}
+
+model Shipment {
+  id              String         @id @default(cuid())
+  tradeId         String?
+  commodityId     String
+  quantity        Int
+  origin          String
+  destination     String
+  status          ShipmentStatus @default(PREPARING)
+  departureDate   DateTime?
+  expectedArrival DateTime
+  actualArrival   DateTime?
+  carrier         String
+  trackingNumber  String         @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  trade     Trade?    @relation(fields: [tradeId], references: [id])
+  commodity Commodity @relation(fields: [commodityId], references: [id])
+
+  @@map("shipments")
+}
+
+model Counterparty {
+  id            String            @id @default(cuid())
+  name          String            @unique
+  type          CounterpartyType
+  country       String
+  creditLimit   Float
+  creditUsed    Float             @default(0)
+  rating        CreditRating
+  totalTrades   Int               @default(0)
+  totalVolume   Float             @default(0)
+  lastTradeDate DateTime?
+  contactPerson String
+  email         String
+  phone         String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  contracts Contract[]
+
+  @@map("counterparties")
+  Trade Trade[]
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  commodityId    String
+  counterpartyId String
+  type           ContractType
+  quantity       Int
+  price          Float
+  totalValue     Float
+  startDate      DateTime
+  endDate        DateTime
+  deliveryTerms  String
+  paymentTerms   String
+  status         ContractStatus @default(ACTIVE)
+  executed       Int            @default(0)
+  remaining      Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  commodity    Commodity    @relation(fields: [commodityId], references: [id])
+  counterparty Counterparty @relation(fields: [counterpartyId], references: [id])
+
+  @@map("contracts")
+}
+
+enum CommodityType {
+  AGRICULTURAL
+  ENERGY
+  METALS
+  LIVESTOCK
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  OPEN
+  EXECUTED
+  SETTLED
+  CANCELLED
+}
+
+enum ShipmentStatus {
+  PREPARING
+  IN_TRANSIT
+  DELIVERED
+  DELAYED
+}
+
+enum CounterpartyType {
+  SUPPLIER
+  CUSTOMER
+  BOTH
+}
+
+enum CreditRating {
+  AAA
+  AA
+  A
+  BBB
+  BB
+  B
+}
+
+enum ContractType {
+  PURCHASE
+  SALE
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
