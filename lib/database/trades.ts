@@ -314,12 +314,12 @@ export async function cancelTrade(id: string, reason?: string) {
 
       // Reverse counterparty credit usage
       const counterparty = await tx.counterparty.findUnique({
-        where: { id: trade.counterparty }
+        where: { id: trade.counterpartyId }
       });
 
       if (counterparty) {
         await tx.counterparty.update({
-          where: { id: trade.counterparty },
+          where: { id: trade.counterpartyId },
           data: {
             creditUsed: Math.max(0, counterparty.creditUsed - trade.totalValue),
             totalTrades: Math.max(0, counterparty.totalTrades - 1),

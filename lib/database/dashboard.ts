@@ -465,19 +465,19 @@ export async function getSystemHealthMetrics() {
         // Trades without commodities
         prisma.trade.count({
           where: {
-            commodity: null
+            commodityId: undefined
           }
         }),
         // Inventory without commodities
         prisma.inventoryItem.count({
           where: {
-            commodity: null
+            commodityId: undefined
           }
         }),
         // Contracts without counterparties
         prisma.contract.count({
           where: {
-            counterparty: null
+            counterpartyId: undefined,
           }
         }),
       ]).then(counts => ({
