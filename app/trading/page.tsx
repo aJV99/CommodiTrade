@@ -26,7 +26,7 @@ export default function TradingPage() {
     if (!searchTerm) return true;
     return (
       trade.commodity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trade.counterparty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trade.counterparty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       trade.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
@@ -137,7 +137,7 @@ export default function TradingPage() {
                     <td className="py-3 px-4 font-medium text-slate-900">
                       ${trade.totalValue.toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-slate-700">{trade.counterparty}</td>
+                    <td className="py-3 px-4 text-slate-700">{trade.counterparty.name}</td>
                     <td className="py-3 px-4">
                       <Badge className={getStatusColor(trade.status)}>{trade.status}</Badge>
                     </td>

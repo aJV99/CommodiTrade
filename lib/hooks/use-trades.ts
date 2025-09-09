@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTrades, createTrade, updateTrade, executeTrade, cancelTrade, getTradeStatistics } from '@/lib/database/trades';
+import { getTrades, createTrade, updateTrade, executeTrade, cancelTrade, getTradeStatistics, getTradeById } from '@/lib/database/trades';
 import { TradeStatus, TradeType } from '@prisma/client';
 
 export function useTrades(filters?: {

@@ -45,6 +45,7 @@ export default function TradeDetailsPage() {
           <h2 className="text-2xl font-bold text-slate-900">Trade Not Found</h2>
           <p className="text-slate-600 mt-2">The requested trade could not be found.</p>
         </div>
+        <p>{error?.message}</p>
         <Button onClick={() => router.push('/trading')} variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Trading
@@ -250,7 +251,7 @@ export default function TradeDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-slate-50 p-4 rounded-lg">
-              <div className="font-medium text-slate-900 mb-2">{trade.counterparty}</div>
+              <div className="font-medium text-slate-900 mb-2">{trade.counterpartyId}</div>
               <div className="space-y-2 text-sm text-slate-600">
                 <div className="flex items-center space-x-2">
                   <User className="h-3 w-3" />

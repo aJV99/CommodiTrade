@@ -121,6 +121,7 @@ export async function getTrades(filters?: {
         commodity: true,
         user: true,
         shipments: true,
+        counterparty: true,
       },
       orderBy: { tradeDate: 'desc' },
       take: filters?.limit || 100,
