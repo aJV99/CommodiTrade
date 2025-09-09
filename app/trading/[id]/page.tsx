@@ -251,15 +251,15 @@ export default function TradeDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-slate-50 p-4 rounded-lg">
-              <div className="font-medium text-slate-900 mb-2">{trade.counterpartyId}</div>
+              <div className="font-medium text-slate-900 mb-2">{trade.counterparty.name}</div>
               <div className="space-y-2 text-sm text-slate-600">
                 <div className="flex items-center space-x-2">
                   <User className="h-3 w-3" />
-                  <span>Contact Person</span>
+                  <span>{trade.counterparty.contactPerson}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <MapPin className="h-3 w-3" />
-                  <span>Location</span>
+                  <span>{trade.counterparty.country}</span>
                 </div>
               </div>
             </div>
