@@ -141,6 +141,7 @@ export async function getTradeById(id: string) {
       where: { id },
       include: {
         commodity: true,
+        counterparty: true,
         user: true,
         shipments: {
           include: {
