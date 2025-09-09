@@ -10,6 +10,7 @@ import { Search } from 'lucide-react';
 import { TradeModal } from '@/components/modals/trade-modal';
 import { useTrades } from '@/lib/hooks/use-trades';
 import { TradeStatus, TradeType } from '@prisma/client';
+import Link from 'next/link';
 
 export default function TradingPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,9 +145,11 @@ export default function TradingPage() {
                       {new Date(trade.tradeDate).toLocaleDateString()}
                     </td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">
-                        View
-                      </Button>
+                      <Link href={`/trading/${trade.id}`}>
+                        <Button variant="ghost" size="sm">
+                          View
+                        </Button>
+                      </Link>
                     </td>
                   </tr>
                 ))}

@@ -22,7 +22,14 @@ export function useTrades(filters?: {
 export function useTradeById(id: string) {
   return useQuery({
     queryKey: ['trade', id],
-    queryFn: () => getTrades({ limit: 1 }).then(trades => trades.find(t => t.id === id)),
+    queryFn: async () => {
+      const trades = await getTrades();
+      const trade = trades.find(t => t.id === id);
+      if (!trade) {
+        throw new Error('Trade not found');
+      }
+      return trade;
+    },
     enabled: !!id,
   });
 }
