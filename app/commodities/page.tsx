@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import Link from 'next/link';
 import { CommodityModal } from '@/components/modals/commodity-modal';
 import { useCommodities } from '@/lib/hooks/use-commodities';
 
@@ -79,8 +80,14 @@ export default function CommoditiesPage() {
               </thead>
               <tbody>
                 {filtered.map((commodity: any) => (
-                  <tr key={commodity.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4 font-medium text-slate-900">{commodity.name}</td>
+                  <tr
+                    key={commodity.id}
+                    className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    onClick={() => (window.location.href = `/commodities/${commodity.id}`)}
+                  >
+                    <td className="py-3 px-4 font-medium text-slate-900">
+                      <Link href={`/commodities/${commodity.id}`}>{commodity.name}</Link>
+                    </td>
                     <td className="py-3 px-4">
                       <Badge className={getTypeColor(commodity.type)}>{commodity.type}</Badge>
                     </td>

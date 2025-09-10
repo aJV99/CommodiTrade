@@ -19,52 +19,85 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
-import { useCreateCommodity } from '@/lib/hooks/use-commodities';
+import { useCreateCommodity, useUpdateCommodity } from '@/lib/hooks/use-commodities';
 import { CommodityType } from '@prisma/client';
 
 interface CommodityModalProps {
-  onCommodityCreated: () => void;
+  onCommodityCreated?: () => void;
+  onCommodityUpdated?: () => void;
+  commodity?: {
+    id: string;
+    name: string;
+    type: CommodityType;
+    unit: string;
+    currentPrice: number;
+  };
+  trigger?: React.ReactNode;
 }
 
-export function CommodityModal({ onCommodityCreated }: CommodityModalProps) {
+export function CommodityModal({
+  onCommodityCreated,
+  onCommodityUpdated,
+  commodity,
+  trigger,
+}: CommodityModalProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    type: '' as CommodityType | '',
-    unit: '',
-    currentPrice: '',
+    name: commodity?.name || '',
+    type: (commodity?.type as CommodityType) || ('' as any),
+    unit: commodity?.unit || '',
+    currentPrice: commodity?.currentPrice?.toString() || '',
   });
 
   const createCommodityMutation = useCreateCommodity();
+  const updateCommodityMutation = useUpdateCommodity();
+  const isEdit = !!commodity;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createCommodityMutation.mutateAsync({
-        name: formData.name,
-        type: formData.type as CommodityType,
-        unit: formData.unit,
-        currentPrice: parseFloat(formData.currentPrice),
-      });
+      if (isEdit && commodity) {
+        await updateCommodityMutation.mutateAsync({
+          id: commodity.id,
+          data: {
+            name: formData.name,
+            type: formData.type as CommodityType,
+            unit: formData.unit,
+            currentPrice: parseFloat(formData.currentPrice),
+          },
+        });
+        onCommodityUpdated && onCommodityUpdated();
+      } else {
+        await createCommodityMutation.mutateAsync({
+          name: formData.name,
+          type: formData.type as CommodityType,
+          unit: formData.unit,
+          currentPrice: parseFloat(formData.currentPrice),
+        });
+        setFormData({ name: '', type: '' as any, unit: '', currentPrice: '' });
+        onCommodityCreated && onCommodityCreated();
+      }
       setOpen(false);
-      setFormData({ name: '', type: '' as any, unit: '', currentPrice: '' });
-      onCommodityCreated();
     } catch (error) {
-      console.error('Error creating commodity:', error);
+      console.error('Error saving commodity:', error);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          New Commodity
-        </Button>
+        {trigger ? (
+          <>{trigger}</>
+        ) : (
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Commodity
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Commodity</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit Commodity' : 'Add Commodity'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -124,8 +157,17 @@ export function CommodityModal({ onCommodityCreated }: CommodityModalProps) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createCommodityMutation.isPending}>
-              {createCommodityMutation.isPending ? 'Adding...' : 'Add Commodity'}
+            <Button
+              type="submit"
+              disabled={isEdit ? updateCommodityMutation.isPending : createCommodityMutation.isPending}
+            >
+              {isEdit
+                ? updateCommodityMutation.isPending
+                  ? 'Saving...'
+                  : 'Save Changes'
+                : createCommodityMutation.isPending
+                  ? 'Adding...'
+                  : 'Add Commodity'}
             </Button>
           </div>
         </form>
