@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Truck, MapPin, Clock, Package } from 'lucide-react';
+import { Search, Truck, MapPin, Clock, Package } from 'lucide-react';
+import { ShipmentModal } from '@/components/modals/shipment-modal';
 import { useShipments } from '@/lib/hooks/use-shipments';
 import { ShipmentStatus } from '@prisma/client';
 
@@ -14,7 +15,7 @@ export default function ShipmentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'all'>('all');
 
-  const { data: shipments = [], isLoading } = useShipments();
+  const { data: shipments = [], isLoading, refetch } = useShipments();
 
   const filteredShipments = useMemo(() => {
     return shipments.filter((shipment) => {
@@ -88,10 +89,7 @@ export default function ShipmentsPage() {
           <h1 className="text-3xl font-bold text-slate-900">Shipments</h1>
           <p className="text-slate-600 mt-2">Track your commodity shipments and deliveries</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          New Shipment
-        </Button>
+        <ShipmentModal onShipmentCreated={refetch} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
