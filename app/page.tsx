@@ -32,7 +32,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
         <p className="text-slate-600 mt-2">
-          Welcome back! Here's an overview of your trading operations.
+          Welcome back! Here&apos;s an overview of your trading operations.
         </p>
       </div>
 
