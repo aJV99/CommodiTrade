@@ -1,78 +1,79 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Truck, MapPin, Clock, Package } from 'lucide-react';
-import { getShipments, Shipment } from '@/lib/mock-data';
+import { useShipments } from '@/lib/hooks/use-shipments';
+import { ShipmentStatus } from '@prisma/client';
 
 export default function ShipmentsPage() {
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [filteredShipments, setFilteredShipments] = useState<Shipment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'all'>('all');
 
-  useEffect(() => {
-    const fetchShipments = async () => {
-      try {
-        const shipmentsData = await getShipments();
-        setShipments(shipmentsData);
-        setFilteredShipments(shipmentsData);
-      } catch (error) {
-        console.error('Error fetching shipments:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: shipments = [], isLoading } = useShipments();
 
-    fetchShipments();
-  }, []);
+  const filteredShipments = useMemo(() => {
+    return shipments.filter((shipment) => {
+      const matchesSearch =
+        searchTerm === '' ||
+        shipment.commodity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shipment.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shipment.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shipment.carrier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-  useEffect(() => {
-    let filtered = shipments;
+      const matchesStatus =
+        statusFilter === 'all' || shipment.status === statusFilter;
 
-    if (searchTerm) {
-      filtered = filtered.filter(
-        shipment =>
-          shipment.commodity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          shipment.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          shipment.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          shipment.carrier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(shipment => shipment.status === statusFilter);
-    }
-
-    setFilteredShipments(filtered);
+      return matchesSearch && matchesStatus;
+    });
   }, [shipments, searchTerm, statusFilter]);
 
-  const getStatusColor = (status: Shipment['status']) => {
+  const getStatusColor = (status: ShipmentStatus) => {
     switch (status) {
-      case 'Preparing':
+      case ShipmentStatus.PREPARING:
         return 'bg-yellow-100 text-yellow-800';
-      case 'In Transit':
+      case ShipmentStatus.IN_TRANSIT:
         return 'bg-blue-100 text-blue-800';
-      case 'Delivered':
+      case ShipmentStatus.DELIVERED:
         return 'bg-green-100 text-green-800';
-      case 'Delayed':
+      case ShipmentStatus.DELAYED:
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const inTransitShipments = shipments.filter(s => s.status === 'In Transit');
-  const delayedShipments = shipments.filter(s => s.status === 'Delayed');
-  const deliveredShipments = shipments.filter(s => s.status === 'Delivered');
+  const getStatusLabel = (status: ShipmentStatus) => {
+    switch (status) {
+      case ShipmentStatus.PREPARING:
+        return 'Preparing';
+      case ShipmentStatus.IN_TRANSIT:
+        return 'In Transit';
+      case ShipmentStatus.DELIVERED:
+        return 'Delivered';
+      case ShipmentStatus.DELAYED:
+        return 'Delayed';
+      default:
+        return status;
+    }
+  };
 
-  if (loading) {
+  const inTransitShipments = shipments.filter(
+    (s) => s.status === ShipmentStatus.IN_TRANSIT
+  );
+  const delayedShipments = shipments.filter(
+    (s) => s.status === ShipmentStatus.DELAYED
+  );
+  const deliveredShipments = shipments.filter(
+    (s) => s.status === ShipmentStatus.DELIVERED
+  );
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -153,16 +154,19 @@ export default function ShipmentsPage() {
                   className="pl-10 w-full sm:w-64"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as ShipmentStatus | 'all')}
+              >
                 <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Preparing">Preparing</SelectItem>
-                  <SelectItem value="In Transit">In Transit</SelectItem>
-                  <SelectItem value="Delivered">Delivered</SelectItem>
-                  <SelectItem value="Delayed">Delayed</SelectItem>
+                  <SelectItem value="PREPARING">Preparing</SelectItem>
+                  <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+                  <SelectItem value="DELAYED">Delayed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -189,7 +193,7 @@ export default function ShipmentsPage() {
                 {filteredShipments.map((shipment) => (
                   <tr key={shipment.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="py-3 px-4 font-medium text-slate-900">{shipment.id}</td>
-                    <td className="py-3 px-4 text-slate-700">{shipment.commodity}</td>
+                    <td className="py-3 px-4 text-slate-700">{shipment.commodity.name}</td>
                     <td className="py-3 px-4 text-slate-700">{shipment.quantity.toLocaleString()}</td>
                     <td className="py-3 px-4 text-slate-700">
                       <div className="flex items-center space-x-1">
@@ -205,14 +209,14 @@ export default function ShipmentsPage() {
                       </code>
                     </td>
                     <td className="py-3 px-4">
-                      <Badge className={getStatusColor(shipment.status)}>{shipment.status}</Badge>
+                      <Badge className={getStatusColor(shipment.status)}>{getStatusLabel(shipment.status)}</Badge>
                     </td>
-                    <td className="py-3 px-4 text-slate-700">{shipment.departureDate}</td>
+                    <td className="py-3 px-4 text-slate-700">{shipment.departureDate ? new Date(shipment.departureDate).toLocaleDateString() : '-'}</td>
                     <td className="py-3 px-4 text-slate-700">
-                      {shipment.expectedArrival}
+                      {shipment.expectedArrival ? new Date(shipment.expectedArrival).toLocaleDateString() : '-'}
                       {shipment.actualArrival && (
                         <div className="text-xs text-green-600 mt-1">
-                          Delivered: {shipment.actualArrival}
+                          Delivered: {new Date(shipment.actualArrival).toLocaleDateString()}
                         </div>
                       )}
                     </td>
