@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  getCommodities, 
-  createCommodity, 
+  getCommodities,
+  getCommodityById,
+  createCommodity,
   updateCommodity,
   updateCommodityPrice,
   batchUpdateCommodityPrices,
@@ -22,6 +23,14 @@ export function useCommodities(filters?: {
   return useQuery({
     queryKey: ['commodities', filters],
     queryFn: () => getCommodities(filters),
+  });
+}
+
+export function useCommodityById(id: string) {
+  return useQuery({
+    queryKey: ['commodity', id],
+    queryFn: () => getCommodityById(id),
+    enabled: !!id,
   });
 }
 

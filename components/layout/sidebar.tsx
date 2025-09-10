@@ -8,6 +8,7 @@ import {
   BarChart3,
   Package,
   TrendingUp,
+  Layers,
   Truck,
   Users,
   FileText,
@@ -19,6 +20,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Trading', href: '/trading', icon: TrendingUp },
+  { name: 'Commodities', href: '/commodities', icon: Layers },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Contracts', href: '/contracts', icon: FileText },
   { name: 'Shipments', href: '/shipments', icon: Truck },
