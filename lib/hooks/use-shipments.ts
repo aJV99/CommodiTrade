@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  getShipments, 
-  createShipment, 
+import {
+  getShipments,
+  createShipment,
   updateShipment,
   updateShipmentStatus,
   deleteShipment,
   getDelayedShipments,
   getArrivingSoonShipments,
-  getShipmentStatistics
+  getShipmentStatistics,
+  getShipmentById,
+  addShipmentEvent
 } from '@/lib/database/shipments';
 import { ShipmentStatus } from '@prisma/client';
 
@@ -28,6 +30,14 @@ export function useShipments(filters?: {
   return useQuery({
     queryKey: ['shipments', filters],
     queryFn: () => getShipments(filters),
+  });
+}
+
+export function useShipment(id: string) {
+  return useQuery({
+    queryKey: ['shipment', id],
+    queryFn: () => getShipmentById(id),
+    enabled: !!id,
   });
 }
 
@@ -97,6 +107,23 @@ export function useUpdateShipmentStatus() {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['delayed-shipments'] });
       queryClient.invalidateQueries({ queryKey: ['arriving-soon-shipments'] });
+    },
+  });
+}
+
+export function useAddShipmentNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, status, location, notes }: {
+      id: string;
+      status?: ShipmentStatus;
+      location?: string;
+      notes?: string;
+    }) => addShipmentEvent(id, status, location, notes),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['shipment', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
     },
   });
 }
