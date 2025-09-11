@@ -12,6 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useUpdateShipment } from '@/lib/hooks/use-shipments';
+import { useTrades } from '@/lib/hooks/use-trades';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ShipmentEditModalProps {
   shipment: any;
@@ -22,6 +30,7 @@ interface ShipmentEditModalProps {
 export function ShipmentEditModal({ shipment, trigger, onShipmentUpdated }: ShipmentEditModalProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
+    tradeId: shipment.trade?.id || '',
     quantity: shipment.quantity.toString(),
     origin: shipment.origin,
     destination: shipment.destination,
@@ -33,6 +42,11 @@ export function ShipmentEditModal({ shipment, trigger, onShipmentUpdated }: Ship
   });
 
   const updateShipmentMutation = useUpdateShipment();
+  const { data: trades = [] } = useTrades();
+
+  const handleTradeChange = (value: string) => {
+    setFormData(prev => ({ ...prev, tradeId: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +54,7 @@ export function ShipmentEditModal({ shipment, trigger, onShipmentUpdated }: Ship
       await updateShipmentMutation.mutateAsync({
         id: shipment.id,
         data: {
+          tradeId: formData.tradeId || null,
           quantity: parseInt(formData.quantity),
           origin: formData.origin,
           destination: formData.destination,
@@ -67,6 +82,24 @@ export function ShipmentEditModal({ shipment, trigger, onShipmentUpdated }: Ship
           <DialogTitle>Edit Shipment</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="trade">Trade (optional)</Label>
+            <Select value={formData.tradeId} onValueChange={handleTradeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select trade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No trade</SelectItem>
+                {trades
+                  .filter(t => t.commodity.id === shipment.commodity.id)
+                  .map(trade => (
+                    <SelectItem key={trade.id} value={trade.id}>
+                      {trade.id} - {trade.commodity.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantity</Label>

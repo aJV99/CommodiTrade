@@ -15,6 +15,7 @@ export interface CreateShipmentData {
 }
 
 export interface UpdateShipmentData {
+  tradeId?: string | null;
   quantity?: number;
   origin?: string;
   destination?: string;
@@ -266,6 +267,27 @@ export async function updateShipment(id: string, data: UpdateShipmentData) {
 
     if (!existingShipment) {
       throw new Error('Shipment not found');
+    }
+
+    // Validate trade if being updated
+    if (data.tradeId !== undefined) {
+      if (data.tradeId) {
+        const trade = await prisma.trade.findUnique({ where: { id: data.tradeId } });
+        if (!trade) {
+          throw new Error('Trade not found');
+        }
+        if (trade.commodityId !== existingShipment.commodityId) {
+          throw new Error('Trade commodity does not match shipment commodity');
+        }
+        const otherShipments = await prisma.shipment.findMany({
+          where: { tradeId: data.tradeId, NOT: { id } },
+        });
+        const totalQuantity = otherShipments.reduce((sum, s) => sum + s.quantity, 0);
+        const newQuantity = data.quantity ?? existingShipment.quantity;
+        if (totalQuantity + newQuantity > trade.quantity) {
+          throw new Error('Shipment quantity exceeds remaining trade quantity');
+        }
+      }
     }
 
     // Validate tracking number uniqueness if being updated

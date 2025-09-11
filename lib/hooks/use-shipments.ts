@@ -10,6 +10,7 @@ import {
   getArrivingSoonShipments,
   getShipmentStatistics,
   getShipmentById,
+  type UpdateShipmentData,
 } from '@/lib/database/shipments';
 import { ShipmentStatus } from '@prisma/client';
 
@@ -81,13 +82,14 @@ export function useCreateShipment() {
 
 export function useUpdateShipment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateShipment(id, data),
-    onSuccess: () => {
+    mutationFn: ({ id, data }: { id: string; data: UpdateShipmentData }) => updateShipment(id, data),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['delayed-shipments'] });
       queryClient.invalidateQueries({ queryKey: ['arriving-soon-shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['shipment', variables.id] });
     },
   });
 }
