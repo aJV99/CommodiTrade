@@ -103,8 +103,22 @@ model Shipment {
 
   trade     Trade?    @relation(fields: [tradeId], references: [id])
   commodity Commodity @relation(fields: [commodityId], references: [id])
+  events    ShipmentEvent[]
 
   @@map("shipments")
+}
+
+model ShipmentEvent {
+  id         String         @id @default(cuid())
+  shipmentId String
+  status     ShipmentStatus
+  notes      String?
+  location   String?
+  timestamp  DateTime       @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@map("shipment_events")
 }
 
 model Counterparty {
@@ -178,6 +192,7 @@ enum ShipmentStatus {
   IN_TRANSIT
   DELIVERED
   DELAYED
+  CANCELLED
 }
 
 enum CounterpartyType {
