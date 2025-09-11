@@ -89,7 +89,7 @@ export function ShipmentEditModal({ shipment, trigger, onShipmentUpdated }: Ship
                 <SelectValue placeholder="Select trade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No trade</SelectItem>
+                <SelectItem value="No">No trade</SelectItem>
                 {trades
                   .filter(t => t.commodity.id === shipment.commodity.id)
                   .map(trade => (

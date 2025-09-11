@@ -123,7 +123,7 @@ export default function ShipmentDetailsPage() {
                     <SelectValue placeholder="No change" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No change</SelectItem>
+                    <SelectItem value="None">No change</SelectItem>
                     <SelectItem value="PREPARING">Preparing</SelectItem>
                     <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
                     <SelectItem value="DELIVERED">Delivered</SelectItem>

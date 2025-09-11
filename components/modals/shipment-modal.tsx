@@ -111,7 +111,7 @@ export function ShipmentModal({ onShipmentCreated }: ShipmentModalProps) {
                 <SelectValue placeholder="Select trade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No trade</SelectItem>
+                {/* <SelectItem value="No">No trade</SelectItem> */}
                 {trades.map((trade) => (
                   <SelectItem key={trade.id} value={trade.id}>
                     {trade.id} - {trade.commodity.name}

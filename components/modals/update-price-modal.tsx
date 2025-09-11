@@ -29,7 +29,7 @@ export function UpdatePriceModal({ commodityId, currentPrice, onPriceUpdated, tr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger ? <>{trigger}</> : <Button variant="outline" size="sm">Update Price</Button>}
+        {trigger ? trigger : <Button variant="outline" size="sm">Update Price</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>

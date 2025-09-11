@@ -87,7 +87,7 @@ export function CommodityModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger ? (
-          <>{trigger}</>
+          trigger
         ) : (
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
