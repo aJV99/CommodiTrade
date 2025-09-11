@@ -4,12 +4,13 @@ import {
   createShipment,
   updateShipment,
   updateShipmentStatus,
+  addShipmentEvent,
   deleteShipment,
   getDelayedShipments,
   getArrivingSoonShipments,
   getShipmentStatistics,
   getShipmentById,
-  addShipmentEvent
+  type UpdateShipmentData,
 } from '@/lib/database/shipments';
 import { ShipmentStatus } from '@prisma/client';
 
@@ -67,6 +68,13 @@ export function useShipmentStatistics(filters?: {
   });
 }
 
+export function useShipment(id: string) {
+  return useQuery({
+    queryKey: ['shipment', id],
+    queryFn: () => getShipmentById(id),
+  });
+}
+
 export function useCreateShipment() {
   const queryClient = useQueryClient();
   
@@ -82,13 +90,14 @@ export function useCreateShipment() {
 
 export function useUpdateShipment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateShipment(id, data),
-    onSuccess: () => {
+    mutationFn: ({ id, data }: { id: string; data: UpdateShipmentData }) => updateShipment(id, data),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['delayed-shipments'] });
       queryClient.invalidateQueries({ queryKey: ['arriving-soon-shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['shipment', variables.id] });
     },
   });
 }
@@ -111,17 +120,12 @@ export function useUpdateShipmentStatus() {
   });
 }
 
-export function useAddShipmentNote() {
+export function useAddShipmentEvent() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ id, status, location, notes }: {
-      id: string;
-      status?: ShipmentStatus;
-      location?: string;
-      notes?: string;
-    }) => addShipmentEvent(id, status, location, notes),
-    onSuccess: (_, variables) => {
+    mutationFn: ({ id, data }: { id: string; data: { status?: ShipmentStatus; location?: string; notes?: string } }) =>
+      addShipmentEvent(id, data),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shipment', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
     },

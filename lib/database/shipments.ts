@@ -15,6 +15,7 @@ export interface CreateShipmentData {
 }
 
 export interface UpdateShipmentData {
+  tradeId?: string | null;
   quantity?: number;
   origin?: string;
   destination?: string;
@@ -31,6 +32,12 @@ export interface ShipmentTracking {
   status: ShipmentStatus;
   location?: string;
   timestamp: Date;
+  notes?: string;
+}
+
+export interface ShipmentEventData {
+  status?: ShipmentStatus;
+  location?: string;
   notes?: string;
 }
 
@@ -193,6 +200,40 @@ export async function getShipmentById(id: string) {
   }
 }
 
+export async function addShipmentEvent(id: string, data: ShipmentEventData) {
+  try {
+    const shipment = await prisma.shipment.findUnique({ where: { id } });
+    if (!shipment) {
+      throw new Error('Shipment not found');
+    }
+
+    const event = await prisma.shipmentEvent.create({
+      data: {
+        shipmentId: id,
+        status: data.status ?? shipment.status,
+        location: data.location,
+        notes: data.notes,
+      },
+    });
+
+    if (data.status) {
+      const updateData: any = { status: data.status, updatedAt: new Date() };
+      if (data.status === ShipmentStatus.DELIVERED && !shipment.actualArrival) {
+        updateData.actualArrival = new Date();
+      }
+      if (data.status === ShipmentStatus.IN_TRANSIT && !shipment.departureDate) {
+        updateData.departureDate = new Date();
+      }
+      await prisma.shipment.update({ where: { id }, data: updateData });
+    }
+
+    return event;
+  } catch (error) {
+    console.error('Error adding shipment event:', error);
+    throw error;
+  }
+}
+
 // Get shipment by tracking number
 export async function getShipmentByTrackingNumber(trackingNumber: string) {
   try {
@@ -229,6 +270,27 @@ export async function updateShipment(id: string, data: UpdateShipmentData) {
 
     if (!existingShipment) {
       throw new Error('Shipment not found');
+    }
+
+    // Validate trade if being updated
+    if (data.tradeId !== undefined) {
+      if (data.tradeId) {
+        const trade = await prisma.trade.findUnique({ where: { id: data.tradeId } });
+        if (!trade) {
+          throw new Error('Trade not found');
+        }
+        if (trade.commodityId !== existingShipment.commodityId) {
+          throw new Error('Trade commodity does not match shipment commodity');
+        }
+        const otherShipments = await prisma.shipment.findMany({
+          where: { tradeId: data.tradeId, NOT: { id } },
+        });
+        const totalQuantity = otherShipments.reduce((sum, s) => sum + s.quantity, 0);
+        const newQuantity = data.quantity ?? existingShipment.quantity;
+        if (totalQuantity + newQuantity > trade.quantity) {
+          throw new Error('Shipment quantity exceeds remaining trade quantity');
+        }
+      }
     }
 
     // Validate tracking number uniqueness if being updated
@@ -269,45 +331,8 @@ export async function updateShipment(id: string, data: UpdateShipmentData) {
 // Update shipment status with tracking
 export async function updateShipmentStatus(id: string, status: ShipmentStatus, location?: string, notes?: string) {
   try {
-    const shipment = await prisma.shipment.findUnique({
-      where: { id }
-    });
-
-    if (!shipment) {
-      throw new Error('Shipment not found');
-    }
-
-    const updateData: any = {
-      status,
-      updatedAt: new Date(),
-    };
-
-    // Set actual arrival date when delivered
-    if (status === ShipmentStatus.DELIVERED && !shipment.actualArrival) {
-      updateData.actualArrival = new Date();
-    }
-
-    // Set departure date when in transit (if not already set)
-    if (status === ShipmentStatus.IN_TRANSIT && !shipment.departureDate) {
-      updateData.departureDate = new Date();
-    }
-
-    const updatedShipment = await prisma.shipment.update({
-      where: { id },
-      data: updateData,
-      include: {
-        trade: {
-          include: {
-            commodity: true,
-            user: true,
-          }
-        },
-        commodity: true,
-      }
-    });
-    await addShipmentEvent(id, status, location, notes);
-
-    return updatedShipment;
+    await addShipmentEvent(id, { status, location, notes });
+    return getShipmentById(id);
   } catch (error) {
     console.error('Error updating shipment status:', error);
     throw error;
@@ -322,37 +347,8 @@ export async function addShipmentEvent(
   notes?: string
 ) {
   try {
-    const shipment = await prisma.shipment.findUnique({
-      where: { id: shipmentId },
-    });
-
-    if (!shipment) {
-      throw new Error('Shipment not found');
-    }
-
-    const event = await prisma.shipmentEvent.create({
-      data: {
-        shipmentId,
-        status: status ?? shipment.status,
-        location,
-        notes,
-      },
-    });
-
-    return event;
-  } catch (error) {
-    console.error('Error adding shipment event:', error);
-    throw error;
-  }
-}
-
-// Get shipment events
-export async function getShipmentEvents(shipmentId: string) {
-  try {
-    return await prisma.shipmentEvent.findMany({
-      where: { shipmentId },
-      orderBy: { timestamp: 'desc' },
-    });
+    await addShipmentEvent(id, { status, location, notes });
+    return getShipmentById(id);
   } catch (error) {
     console.error('Error fetching shipment events:', error);
     throw error;

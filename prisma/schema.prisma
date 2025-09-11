@@ -112,8 +112,8 @@ model ShipmentEvent {
   id         String         @id @default(cuid())
   shipmentId String
   status     ShipmentStatus
-  notes      String?
   location   String?
+  notes      String?
   timestamp  DateTime       @default(now())
 
   shipment Shipment @relation(fields: [shipmentId], references: [id])

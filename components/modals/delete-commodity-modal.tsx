@@ -40,7 +40,7 @@ export function DeleteCommodityModal({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        {trigger ? <>{trigger}</> : (
+        {trigger ? trigger : (
           <Button variant="destructive" size="sm">Delete</Button>
         )}
       </AlertDialogTrigger>
