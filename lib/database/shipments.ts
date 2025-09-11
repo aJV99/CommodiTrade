@@ -34,6 +34,12 @@ export interface ShipmentTracking {
   notes?: string;
 }
 
+export interface ShipmentEventData {
+  status?: ShipmentStatus;
+  location?: string;
+  notes?: string;
+}
+
 // Create a new shipment
 export async function createShipment(data: CreateShipmentData) {
   try {
@@ -173,6 +179,9 @@ export async function getShipmentById(id: string) {
           }
         },
         commodity: true,
+        events: {
+          orderBy: { timestamp: 'desc' },
+        },
       }
     });
 
@@ -183,6 +192,40 @@ export async function getShipmentById(id: string) {
     return shipment;
   } catch (error) {
     console.error('Error fetching shipment:', error);
+    throw error;
+  }
+}
+
+export async function addShipmentEvent(id: string, data: ShipmentEventData) {
+  try {
+    const shipment = await prisma.shipment.findUnique({ where: { id } });
+    if (!shipment) {
+      throw new Error('Shipment not found');
+    }
+
+    const event = await prisma.shipmentEvent.create({
+      data: {
+        shipmentId: id,
+        status: data.status ?? shipment.status,
+        location: data.location,
+        notes: data.notes,
+      },
+    });
+
+    if (data.status) {
+      const updateData: any = { status: data.status, updatedAt: new Date() };
+      if (data.status === ShipmentStatus.DELIVERED && !shipment.actualArrival) {
+        updateData.actualArrival = new Date();
+      }
+      if (data.status === ShipmentStatus.IN_TRANSIT && !shipment.departureDate) {
+        updateData.departureDate = new Date();
+      }
+      await prisma.shipment.update({ where: { id }, data: updateData });
+    }
+
+    return event;
+  } catch (error) {
+    console.error('Error adding shipment event:', error);
     throw error;
   }
 }
@@ -263,44 +306,8 @@ export async function updateShipment(id: string, data: UpdateShipmentData) {
 // Update shipment status with tracking
 export async function updateShipmentStatus(id: string, status: ShipmentStatus, location?: string, notes?: string) {
   try {
-    const shipment = await prisma.shipment.findUnique({
-      where: { id }
-    });
-
-    if (!shipment) {
-      throw new Error('Shipment not found');
-    }
-
-    const updateData: any = {
-      status,
-      updatedAt: new Date(),
-    };
-
-    // Set actual arrival date when delivered
-    if (status === ShipmentStatus.DELIVERED && !shipment.actualArrival) {
-      updateData.actualArrival = new Date();
-    }
-
-    // Set departure date when in transit (if not already set)
-    if (status === ShipmentStatus.IN_TRANSIT && !shipment.departureDate) {
-      updateData.departureDate = new Date();
-    }
-
-    const updatedShipment = await prisma.shipment.update({
-      where: { id },
-      data: updateData,
-      include: {
-        trade: {
-          include: {
-            commodity: true,
-            user: true,
-          }
-        },
-        commodity: true,
-      }
-    });
-
-    return updatedShipment;
+    await addShipmentEvent(id, { status, location, notes });
+    return getShipmentById(id);
   } catch (error) {
     console.error('Error updating shipment status:', error);
     throw error;

@@ -10,6 +10,7 @@ import { Search, Truck, MapPin, Clock, Package } from 'lucide-react';
 import { ShipmentModal } from '@/components/modals/shipment-modal';
 import { useShipments } from '@/lib/hooks/use-shipments';
 import { ShipmentStatus } from '@prisma/client';
+import Link from 'next/link';
 
 export default function ShipmentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +45,8 @@ export default function ShipmentsPage() {
         return 'bg-green-100 text-green-800';
       case ShipmentStatus.DELAYED:
         return 'bg-red-100 text-red-800';
+      case ShipmentStatus.CANCELLED:
+        return 'bg-gray-200 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -59,6 +62,8 @@ export default function ShipmentsPage() {
         return 'Delivered';
       case ShipmentStatus.DELAYED:
         return 'Delayed';
+      case ShipmentStatus.CANCELLED:
+        return 'Cancelled';
       default:
         return status;
     }
@@ -165,6 +170,7 @@ export default function ShipmentsPage() {
                   <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
                   <SelectItem value="DELIVERED">Delivered</SelectItem>
                   <SelectItem value="DELAYED">Delayed</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -190,7 +196,11 @@ export default function ShipmentsPage() {
               <tbody>
                 {filteredShipments.map((shipment) => (
                   <tr key={shipment.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4 font-medium text-slate-900">{shipment.id}</td>
+                    <td className="py-3 px-4 font-medium text-slate-900">
+                      <Link href={`/shipments/${shipment.id}`} className="hover:underline">
+                        {shipment.id}
+                      </Link>
+                    </td>
                     <td className="py-3 px-4 text-slate-700">{shipment.commodity.name}</td>
                     <td className="py-3 px-4 text-slate-700">{shipment.quantity.toLocaleString()}</td>
                     <td className="py-3 px-4 text-slate-700">
@@ -219,9 +229,9 @@ export default function ShipmentsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">
-                        Track
-                      </Button>
+                      <Link href={`/shipments/${shipment.id}`}>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
