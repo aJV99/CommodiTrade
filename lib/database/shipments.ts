@@ -90,6 +90,9 @@ export async function createShipment(data: CreateShipmentData) {
           }
         },
         commodity: true,
+        events: {
+          orderBy: { timestamp: 'desc' },
+        },
       }
     });
 
@@ -173,6 +176,9 @@ export async function getShipmentById(id: string) {
           }
         },
         commodity: true,
+        events: {
+          orderBy: { timestamp: 'desc' },
+        },
       }
     });
 
@@ -299,10 +305,56 @@ export async function updateShipmentStatus(id: string, status: ShipmentStatus, l
         commodity: true,
       }
     });
+    await addShipmentEvent(id, status, location, notes);
 
     return updatedShipment;
   } catch (error) {
     console.error('Error updating shipment status:', error);
+    throw error;
+  }
+}
+
+// Add shipment event
+export async function addShipmentEvent(
+  shipmentId: string,
+  status?: ShipmentStatus,
+  location?: string,
+  notes?: string
+) {
+  try {
+    const shipment = await prisma.shipment.findUnique({
+      where: { id: shipmentId },
+    });
+
+    if (!shipment) {
+      throw new Error('Shipment not found');
+    }
+
+    const event = await prisma.shipmentEvent.create({
+      data: {
+        shipmentId,
+        status: status ?? shipment.status,
+        location,
+        notes,
+      },
+    });
+
+    return event;
+  } catch (error) {
+    console.error('Error adding shipment event:', error);
+    throw error;
+  }
+}
+
+// Get shipment events
+export async function getShipmentEvents(shipmentId: string) {
+  try {
+    return await prisma.shipmentEvent.findMany({
+      where: { shipmentId },
+      orderBy: { timestamp: 'desc' },
+    });
+  } catch (error) {
+    console.error('Error fetching shipment events:', error);
     throw error;
   }
 }
