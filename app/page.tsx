@@ -22,7 +22,7 @@ export default function Dashboard() {
   if (statsLoading || tradesLoading || commoditiesLoading || shipmentsLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -30,8 +30,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-600 mt-2">
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="mt-2 text-muted-foreground">
           Welcome back! Here&apos;s an overview of your trading operations.
         </p>
       </div>
@@ -45,8 +45,8 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {shipments && <PendingShipments shipments={shipments} />}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold text-card-foreground">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
             <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
               <div className="font-medium text-blue-900">New Trade</div>

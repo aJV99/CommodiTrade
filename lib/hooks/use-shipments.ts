@@ -68,13 +68,6 @@ export function useShipmentStatistics(filters?: {
   });
 }
 
-export function useShipment(id: string) {
-  return useQuery({
-    queryKey: ['shipment', id],
-    queryFn: () => getShipmentById(id),
-  });
-}
-
 export function useCreateShipment() {
   const queryClient = useQueryClient();
   

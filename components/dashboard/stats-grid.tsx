@@ -11,13 +11,15 @@ interface StatsGridProps {
     portfolioChangePercent: number;
     totalTrades: number;
     activeTrades: number;
+    executedTrades: number;
     totalTradeValue: number;
     totalContracts: number;
     activeContracts: number;
     totalInventoryItems: number;
     inventoryValuation: {
       totalMarketValue: number;
-      totalUnrealizedPnL: number;
+      totalCostValue: number;
+      unrealizedPnL: number;
     };
     totalShipments: number;
     inTransitShipments: number;
@@ -55,8 +57,8 @@ export function StatsGrid({ stats }: StatsGridProps) {
       title: 'Inventory Value',
       value: formatCurrency(stats.inventoryValuation.totalMarketValue),
       icon: Package,
-      change: `${stats.inventoryValuation.totalUnrealizedPnL >= 0 ? '+' : ''}${formatCurrency(stats.inventoryValuation.totalUnrealizedPnL)}`,
-      changeType: stats.inventoryValuation.totalUnrealizedPnL >= 0 ? 'positive' as const : 'negative' as const,
+      change: `${stats.inventoryValuation.unrealizedPnL >= 0 ? '+' : ''}${formatCurrency(stats.inventoryValuation.unrealizedPnL)}`,
+      changeType: stats.inventoryValuation.unrealizedPnL >= 0 ? 'positive' as const : 'negative' as const,
     },
     {
       title: 'In Transit Shipments',
@@ -98,33 +100,33 @@ export function StatsGrid({ stats }: StatsGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
       {statCards.map((stat, index) => (
-        <Card key={index} className="hover:shadow-md transition-shadow">
+        <Card key={index} className="transition-shadow hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {stat.title}
             </CardTitle>
-            <stat.icon className="h-4 w-4 text-slate-400" />
+            <stat.icon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
+            <div className="text-2xl font-bold text-card-foreground">{stat.value}</div>
             {stat.subtitle && (
-              <p className="text-xs text-slate-500 mt-1">{stat.subtitle}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{stat.subtitle}</p>
             )}
-            <div className="flex items-center mt-2">
+            <div className="mt-2 flex items-center">
               <span
                 className={`text-xs font-medium ${
                   stat.changeType === 'positive'
-                    ? 'text-green-600'
+                    ? 'text-emerald-600'
                     : stat.changeType === 'negative'
-                    ? 'text-red-600'
-                    : 'text-slate-500'
+                    ? 'text-destructive'
+                    : 'text-muted-foreground'
                 }`}
               >
                 {stat.change}
               </span>
-              <span className="text-xs text-slate-500 ml-1">from last month</span>
+              <span className="ml-1 text-xs text-muted-foreground">from last month</span>
             </div>
           </CardContent>
         </Card>

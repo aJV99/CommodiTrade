@@ -1,11 +1,9 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { QueryProvider } from '@/components/providers/query-provider';
-
-const inter = Inter({ subsets: ['latin'] });
+import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'CommodiTrade - Commodity Trading Platform',
@@ -18,10 +16,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn('min-h-screen bg-background font-sans antialiased')}>
         <QueryProvider>
-          <div className="flex h-screen bg-slate-100">
+          <div className="flex h-screen bg-muted">
             <Sidebar />
             <div className="flex flex-col flex-1 overflow-hidden">
               <Header />
