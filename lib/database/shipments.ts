@@ -339,22 +339,6 @@ export async function updateShipmentStatus(id: string, status: ShipmentStatus, l
   }
 }
 
-// Add shipment event
-export async function addShipmentEvent(
-  shipmentId: string,
-  status?: ShipmentStatus,
-  location?: string,
-  notes?: string
-) {
-  try {
-    await addShipmentEvent(id, { status, location, notes });
-    return getShipmentById(id);
-  } catch (error) {
-    console.error('Error fetching shipment events:', error);
-    throw error;
-  }
-}
-
 // Delete shipment
 export async function deleteShipment(id: string) {
   try {
