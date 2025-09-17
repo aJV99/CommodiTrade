@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -267,8 +268,8 @@ export default function ContractsPage() {
                       </td>
                       <td className="py-3 px-4 text-slate-700">{formatDate(contract.endDate)}</td>
                       <td className="py-3 px-4">
-                        <Button variant="ghost" size="sm">
-                          View
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/contracts/${contract.id}`}>View</Link>
                         </Button>
                       </td>
                     </tr>

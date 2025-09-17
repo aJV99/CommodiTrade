@@ -9,17 +9,23 @@ import {
   getLowStockAlerts
 } from '@/lib/database/inventory';
 
-export function useInventory(filters?: {
-  commodityId?: string;
-  warehouse?: string;
-  location?: string;
-  quality?: string;
-  minQuantity?: number;
-  maxQuantity?: number;
-}) {
+export function useInventory(
+  filters?: {
+    commodityId?: string;
+    warehouse?: string;
+    location?: string;
+    quality?: string;
+    minQuantity?: number;
+    maxQuantity?: number;
+  },
+  options?: {
+    enabled?: boolean;
+  }
+) {
   return useQuery({
     queryKey: ['inventory', filters],
     queryFn: () => getInventoryItems(filters),
+    enabled: options?.enabled ?? true,
   });
 }
 
