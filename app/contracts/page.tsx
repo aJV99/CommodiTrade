@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, FileText, DollarSign } from 'lucide-react';
+import { Search, FileText, DollarSign } from 'lucide-react';
 import { useContracts } from '@/lib/hooks/use-contracts';
 import type { Prisma } from '@prisma/client';
+import { ContractModal } from '@/components/modals/contract-modal';
 
 type ContractWithRelations = Prisma.ContractGetPayload<{
   include: { commodity: true; counterparty: true };
@@ -47,6 +48,12 @@ export default function ContractsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const { data: contractsData, isLoading, isError, error } = useContracts();
+
+  const handleContractCreated = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+  };
 
   const contracts = useMemo(() => (contractsData ?? []) as ContractWithRelations[], [contractsData]);
 
@@ -117,10 +124,7 @@ export default function ContractsPage() {
           <h1 className="text-3xl font-bold text-slate-900">Contracts</h1>
           <p className="text-slate-600 mt-2">Manage your commodity purchase and sale contracts</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          New Contract
-        </Button>
+        <ContractModal onContractCreated={handleContractCreated} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
