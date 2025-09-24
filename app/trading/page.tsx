@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,30 @@ import { TradeModal } from '@/components/modals/trade-modal';
 import { useTrades } from '@/lib/hooks/use-trades';
 import { TradeStatus, TradeType } from '@prisma/client';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useCommodities } from '@/lib/hooks/use-commodities';
 
 export default function TradingPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading trades…</div>}>
+      <TradingPageContent />
+    </Suspense>
+  );
+}
+
+function TradingPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const commodityIdFilter = searchParams.get('commodityId') ?? undefined;
+  const { data: commodities = [] } = useCommodities();
 
   const { data: trades = [], isLoading, refetch } = useTrades({
     status: statusFilter !== 'all' ? statusFilter as TradeStatus : undefined,
     type: typeFilter !== 'all' ? typeFilter as TradeType : undefined,
+    commodityId: commodityIdFilter,
   });
 
   const filteredTrades = trades.filter(trade => {
@@ -30,6 +45,11 @@ export default function TradingPage() {
       trade.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
+
+  const commodityFilterLabel = useMemo(() => {
+    if (!commodityIdFilter) return undefined;
+    return commodities.find((commodity) => commodity.id === commodityIdFilter)?.name;
+  }, [commodities, commodityIdFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,6 +87,25 @@ export default function TradingPage() {
         </div>
         <TradeModal onTradeCreated={refetch} />
       </div>
+
+      {commodityIdFilter && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          <span>
+            Commodity filter:{' '}
+            <span className="font-semibold">
+              {commodityFilterLabel ?? 'Selected commodity'}
+            </span>
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => router.push('/trading')}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -1,75 +1,123 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import React, { useMemo, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Plus } from 'lucide-react';
 import { useCreateInventoryItem } from '@/lib/hooks/use-inventory';
 import { useCommodities } from '@/lib/hooks/use-commodities';
+import { useToast } from '@/hooks/use-toast';
+import {
+  inventoryCreateSchema,
+  InventoryFormValues,
+} from '@/lib/validation/inventory';
+import {
+  INVENTORY_QUALITIES,
+  INVENTORY_UNITS,
+  isInventoryUnit,
+  InventoryUnit,
+} from '@/lib/constants/inventory';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
 interface InventoryModalProps {
-  onInventoryCreated: () => void;
+  onInventoryCreated?: () => void;
 }
+
+const DEFAULT_UNIT: InventoryUnit = INVENTORY_UNITS[0];
+const DEFAULT_QUALITY = INVENTORY_QUALITIES[3] ?? INVENTORY_QUALITIES[0];
 
 export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    commodityId: '',
-    quantity: '',
-    unit: '',
-    warehouse: '',
-    location: '',
-    quality: '',
-    costBasis: '',
-    marketValue: '',
-  });
-
+  const { toast } = useToast();
   const { data: commodities = [] } = useCommodities();
   const createInventoryMutation = useCreateInventoryItem();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<InventoryFormValues>({
+    resolver: zodResolver(inventoryCreateSchema),
+    defaultValues: {
+      commodityId: '',
+      quantity: 0,
+      unit: DEFAULT_UNIT,
+      warehouse: '',
+      location: '',
+      quality: DEFAULT_QUALITY,
+      costBasis: 0,
+      marketValue: 0,
+    },
+  });
 
-    try {
-      await createInventoryMutation.mutateAsync({
-        commodityId: formData.commodityId,
-        quantity: parseInt(formData.quantity),
-        unit: formData.unit,
-        warehouse: formData.warehouse,
-        location: formData.location,
-        quality: formData.quality,
-        costBasis: parseFloat(formData.costBasis),
-        marketValue: parseFloat(formData.marketValue),
-      });
+  const commodityOptions = useMemo(
+    () =>
+      commodities.map((commodity) => ({
+        label: commodity.name,
+        value: commodity.id,
+      })),
+    [commodities],
+  );
 
-      setOpen(false);
-      setFormData({
-        commodityId: '',
-        quantity: '',
-        unit: '',
-        warehouse: '',
-        location: '',
-        quality: '',
-        costBasis: '',
-        marketValue: '',
-      });
-      onInventoryCreated();
-    } catch (error) {
-      console.error('Error creating inventory item:', error);
-    }
+  const handleClose = () => {
+    setOpen(false);
+    form.reset();
   };
 
   const handleCommodityChange = (commodityId: string) => {
-    const selectedCommodity = commodities.find(c => c.id === commodityId);
-    setFormData(prev => ({
-      ...prev,
-      commodityId,
-      unit: selectedCommodity?.unit || '',
-      marketValue: selectedCommodity?.currentPrice.toString() || '',
-    }));
+    form.setValue('commodityId', commodityId);
+    const selectedCommodity = commodities.find((c) => c.id === commodityId);
+    if (selectedCommodity) {
+      if (selectedCommodity.unit && isInventoryUnit(selectedCommodity.unit)) {
+        form.setValue('unit', selectedCommodity.unit);
+      }
+      if (typeof selectedCommodity.currentPrice === 'number') {
+        form.setValue('marketValue', selectedCommodity.currentPrice);
+        form.setValue('costBasis', selectedCommodity.currentPrice);
+      }
+    }
+  };
+
+  const onSubmit = async (values: InventoryFormValues) => {
+    try {
+      await createInventoryMutation.mutateAsync(values);
+      toast({
+        title: 'Inventory updated',
+        description: 'Inventory lot added successfully.',
+      });
+      onInventoryCreated?.();
+      handleClose();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to create inventory lot. Please try again.';
+
+      toast({
+        title: 'Unable to add stock',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -80,127 +128,223 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
           Add Stock
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Add Inventory Stock</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="commodity">Commodity</Label>
-              <Select value={formData.commodityId} onValueChange={handleCommodityChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select commodity" />
-                </SelectTrigger>
-                <SelectContent>
-                  {commodities.map((commodity) => (
-                    <SelectItem key={commodity.id} value={commodity.id}>
-                      {commodity.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                placeholder="Enter quantity"
-                required
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+            noValidate
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="commodityId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Commodity</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleCommodityChange(value);
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select commodity" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {commodityOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        {...field}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value === ''
+                              ? undefined
+                              : Number(event.target.value),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unit</Label>
-              <Input
-                id="unit"
-                value={formData.unit}
-                onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                placeholder="e.g., MT, BBL, OZ"
-                required
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="unit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {INVENTORY_UNITS.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="quality"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quality</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select quality" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {INVENTORY_QUALITIES.map((quality) => (
+                          <SelectItem key={quality} value={quality}>
+                            {quality}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="quality">Quality</Label>
-              <Select value={formData.quality} onValueChange={(value) => setFormData(prev => ({ ...prev, quality: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select quality" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Grade A">Grade A</SelectItem>
-                  <SelectItem value="Grade 1">Grade 1</SelectItem>
-                  <SelectItem value="Premium">Premium</SelectItem>
-                  <SelectItem value="Standard">Standard</SelectItem>
-                  <SelectItem value="99.9%">99.9%</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="warehouse">Warehouse</Label>
-              <Input
-                id="warehouse"
-                value={formData.warehouse}
-                onChange={(e) => setFormData(prev => ({ ...prev, warehouse: e.target.value }))}
-                placeholder="Warehouse name"
-                required
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="warehouse"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Warehouse</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Warehouse name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="City/Region" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="City/Region"
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="costBasis">Cost Basis</Label>
-              <Input
-                id="costBasis"
-                type="number"
-                step="0.01"
-                value={formData.costBasis}
-                onChange={(e) => setFormData(prev => ({ ...prev, costBasis: e.target.value }))}
-                placeholder="Cost per unit"
-                required
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="costBasis"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost Basis</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        {...field}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value === ''
+                              ? undefined
+                              : Number(event.target.value),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="marketValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Market Value</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        {...field}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value === ''
+                              ? undefined
+                              : Number(event.target.value),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="marketValue">Market Value</Label>
-              <Input
-                id="marketValue"
-                type="number"
-                step="0.01"
-                value={formData.marketValue}
-                onChange={(e) => setFormData(prev => ({ ...prev, marketValue: e.target.value }))}
-                placeholder="Current market price"
-                required
-              />
-            </div>
-          </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createInventoryMutation.isPending}>
-              {createInventoryMutation.isPending ? 'Adding...' : 'Add Stock'}
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createInventoryMutation.isPending}>
+                {createInventoryMutation.isPending ? 'Adding…' : 'Add Stock'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

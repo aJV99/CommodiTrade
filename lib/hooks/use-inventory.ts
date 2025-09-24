@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  getInventoryItems, 
-  createInventoryItem, 
-  updateInventoryItem, 
+import {
+  getInventoryItems,
+  createInventoryItem,
+  updateInventoryItem,
   deleteInventoryItem,
   processInventoryMovement,
   getInventoryValuation,
-  getLowStockAlerts
+  getLowStockAlerts,
+  getInventoryMovementsForItem,
 } from '@/lib/database/inventory';
+import type { InventoryMovementInput } from '@/lib/database/inventory';
 
 export function useInventory(
   filters?: {
@@ -37,6 +39,20 @@ export function useInventoryValuation(filters?: {
   return useQuery({
     queryKey: ['inventory-valuation', filters],
     queryFn: () => getInventoryValuation(filters),
+  });
+}
+
+export function useInventoryMovements(
+  inventoryId?: string,
+  options?: { limit?: number },
+) {
+  return useQuery({
+    queryKey: ['inventory-movements', inventoryId, options?.limit],
+    queryFn: () =>
+      getInventoryMovementsForItem(inventoryId as string, {
+        limit: options?.limit,
+      }),
+    enabled: Boolean(inventoryId),
   });
 }
 
@@ -89,13 +105,15 @@ export function useDeleteInventoryItem() {
 
 export function useProcessInventoryMovement() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: processInventoryMovement,
+    mutationFn: (movement: InventoryMovementInput) =>
+      processInventoryMovement(movement),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-valuation'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
     },
   });
 }

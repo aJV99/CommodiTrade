@@ -1,6 +1,7 @@
 "use server";
 import { prisma } from '@/lib/prisma';
-import { ShipmentStatus } from '@prisma/client';
+import { ShipmentStatus, TradeType } from '@prisma/client';
+import { processInventoryMovement } from '@/lib/database/inventory';
 
 export interface CreateShipmentData {
   tradeId?: string;
@@ -39,6 +40,41 @@ export interface ShipmentEventData {
   status?: ShipmentStatus;
   location?: string;
   notes?: string;
+}
+
+async function ensureInventoryLotForShipment(
+  commodityId: string,
+  warehouse: string,
+  location: string,
+  unit: string,
+  costBasis: number,
+  marketValue: number,
+) {
+  const existingLot = await prisma.inventoryItem.findFirst({
+    where: {
+      commodityId,
+      warehouse,
+      location,
+      quality: 'Standard',
+    },
+  });
+
+  if (existingLot) {
+    return existingLot;
+  }
+
+  return prisma.inventoryItem.create({
+    data: {
+      commodityId,
+      quantity: 0,
+      unit,
+      warehouse,
+      location,
+      quality: 'Standard',
+      costBasis,
+      marketValue,
+    },
+  });
 }
 
 // Create a new shipment
@@ -225,6 +261,50 @@ export async function addShipmentEvent(id: string, data: ShipmentEventData) {
         updateData.departureDate = new Date();
       }
       await prisma.shipment.update({ where: { id }, data: updateData });
+
+      if (data.status === ShipmentStatus.DELIVERED) {
+        const detailedShipment = await prisma.shipment.findUnique({
+          where: { id },
+          include: {
+            trade: true,
+            commodity: true,
+          },
+        });
+
+        if (detailedShipment?.commodity) {
+          const trade = detailedShipment.trade;
+          const movementType =
+            trade?.type === TradeType.SELL ? 'OUT' : 'IN';
+          const warehouse =
+            movementType === 'OUT'
+              ? detailedShipment.origin
+              : detailedShipment.destination;
+          const location = warehouse;
+
+          const inventoryLot = await ensureInventoryLotForShipment(
+            detailedShipment.commodityId,
+            warehouse,
+            location,
+            detailedShipment.commodity.unit,
+            trade?.price ?? detailedShipment.commodity.currentPrice,
+            detailedShipment.commodity.currentPrice,
+          );
+
+          await processInventoryMovement({
+            inventoryId: inventoryLot.id,
+            type: movementType,
+            quantity: detailedShipment.quantity,
+            reason: `Shipment ${detailedShipment.trackingNumber} delivered`,
+            referenceType: 'SHIPMENT',
+            referenceId: detailedShipment.id,
+            unitCost:
+              movementType === 'IN'
+                ? trade?.price ?? detailedShipment.commodity.currentPrice
+                : undefined,
+            unitMarketValue: detailedShipment.commodity.currentPrice,
+          });
+        }
+      }
     }
 
     return event;

@@ -1,6 +1,7 @@
 "use server";
 import { prisma } from '@/lib/prisma';
 import { TradeType, TradeStatus } from '@prisma/client';
+import { processInventoryMovement } from '@/lib/database/inventory';
 
 export interface CreateTradeData {
   commodityId: string;
@@ -234,45 +235,79 @@ export async function executeTrade(id: string) {
         }
       });
 
-      // If it's a BUY trade, add to inventory
+      const defaultWarehouse = 'Main Warehouse';
+
       if (trade.type === TradeType.BUY) {
-        // Check if inventory item already exists for this commodity
         const existingInventory = await tx.inventoryItem.findFirst({
           where: {
             commodityId: trade.commodityId,
-            // You might want to add warehouse/location matching here
-          }
+            warehouse: defaultWarehouse,
+            location: trade.location,
+            quality: 'Standard',
+          },
         });
 
-        if (existingInventory) {
-          // Update existing inventory
-          const newQuantity = existingInventory.quantity + trade.quantity;
-          const newCostBasis = ((existingInventory.quantity * existingInventory.costBasis) + 
-                               (trade.quantity * trade.price)) / newQuantity;
-
-          await tx.inventoryItem.update({
-            where: { id: existingInventory.id },
-            data: {
-              quantity: newQuantity,
-              costBasis: newCostBasis,
-              lastUpdated: new Date(),
-            }
-          });
-        } else {
-          // Create new inventory item
-          await tx.inventoryItem.create({
+        const targetInventory =
+          existingInventory ??
+          (await tx.inventoryItem.create({
             data: {
               commodityId: trade.commodityId,
-              quantity: trade.quantity,
+              quantity: 0,
               unit: trade.commodity.unit,
-              warehouse: 'Main Warehouse', // Default warehouse
+              warehouse: defaultWarehouse,
               location: trade.location,
-              quality: 'Standard', // Default quality
+              quality: 'Standard',
               costBasis: trade.price,
               marketValue: trade.commodity.currentPrice,
-            }
-          });
+            },
+            include: { commodity: true },
+          }));
+
+        await processInventoryMovement(
+          {
+            inventoryId: targetInventory.id,
+            type: 'IN',
+            quantity: trade.quantity,
+            reason: `Trade ${trade.id} execution`,
+            referenceType: 'TRADE',
+            referenceId: trade.id,
+            unitCost: trade.price,
+            unitMarketValue: trade.commodity.currentPrice,
+          },
+          tx,
+        );
+      } else {
+        const lot = await tx.inventoryItem.findFirst({
+          where: {
+            commodityId: trade.commodityId,
+            location: trade.location,
+          },
+          orderBy: { lastUpdated: 'desc' },
+        });
+
+        const fallbackLot = lot
+          ? lot
+          : await tx.inventoryItem.findFirst({
+              where: { commodityId: trade.commodityId },
+              orderBy: { lastUpdated: 'desc' },
+            });
+
+        if (!fallbackLot) {
+          throw new Error('No inventory available for SELL execution');
         }
+
+        await processInventoryMovement(
+          {
+            inventoryId: fallbackLot.id,
+            type: 'OUT',
+            quantity: trade.quantity,
+            reason: `Trade ${trade.id} execution`,
+            referenceType: 'TRADE',
+            referenceId: trade.id,
+            unitMarketValue: trade.price,
+          },
+          tx,
+        );
       }
 
       return updatedTrade;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,29 @@ import { ShipmentModal } from '@/components/modals/shipment-modal';
 import { useShipments } from '@/lib/hooks/use-shipments';
 import { ShipmentStatus } from '@prisma/client';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useCommodities } from '@/lib/hooks/use-commodities';
 
 export default function ShipmentsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading shipments…</div>}>
+      <ShipmentsPageContent />
+    </Suspense>
+  );
+}
+
+function ShipmentsPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'all'>('all');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const commodityIdFilter = searchParams.get('commodityId') ?? undefined;
+  const { data: commodities = [] } = useCommodities();
 
-  const { data: shipments = [], isLoading, refetch } = useShipments();
+  const { data: shipments = [], isLoading, refetch } = useShipments({
+    commodityId: commodityIdFilter,
+    status: statusFilter === 'all' ? undefined : statusFilter,
+  });
 
   const filteredShipments = useMemo(() => {
     return shipments.filter((shipment) => {
@@ -34,6 +51,11 @@ export default function ShipmentsPage() {
       return matchesSearch && matchesStatus;
     });
   }, [shipments, searchTerm, statusFilter]);
+
+  const commodityFilterLabel = useMemo(() => {
+    if (!commodityIdFilter) return undefined;
+    return commodities.find((commodity) => commodity.id === commodityIdFilter)?.name;
+  }, [commodities, commodityIdFilter]);
 
   const getStatusColor = (status: ShipmentStatus) => {
     switch (status) {
@@ -96,6 +118,25 @@ export default function ShipmentsPage() {
         </div>
         <ShipmentModal onShipmentCreated={refetch} />
       </div>
+
+      {commodityIdFilter && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          <span>
+            Commodity filter:{' '}
+            <span className="font-semibold">
+              {commodityFilterLabel ?? 'Selected commodity'}
+            </span>
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => router.push('/shipments')}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>

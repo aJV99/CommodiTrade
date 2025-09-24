@@ -80,9 +80,9 @@ export function useExecuteTrade() {
 
 export function useCancelTrade() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: cancelTrade,
+    mutationFn: (id: string) => cancelTrade(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       queryClient.invalidateQueries({ queryKey: ['counterparties'] });

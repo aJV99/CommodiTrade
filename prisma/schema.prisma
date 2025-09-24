@@ -81,8 +81,28 @@ model InventoryItem {
   updatedAt    DateTime @updatedAt
 
   commodity Commodity @relation(fields: [commodityId], references: [id])
+  movements InventoryMovement[]
 
+  @@unique([commodityId, warehouse, location, quality], name: "inventory_item_unique_slot")
   @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id                 String                 @id @default(cuid())
+  inventoryId        String
+  type               InventoryMovementType
+  quantityDelta      Int
+  resultingQuantity  Int
+  reason             String?
+  referenceType      InventoryMovementReferenceType?
+  referenceId        String?
+  unitCost           Float?
+  unitMarketValue    Float?
+  createdAt          DateTime              @default(now())
+
+  inventory InventoryItem @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
 }
 
 model Shipment {
@@ -193,6 +213,18 @@ enum ShipmentStatus {
   DELIVERED
   DELAYED
   CANCELLED
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum InventoryMovementReferenceType {
+  TRADE
+  SHIPMENT
+  MANUAL
 }
 
 enum CounterpartyType {

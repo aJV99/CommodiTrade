@@ -1,92 +1,116 @@
 "use server";
 import { prisma } from '@/lib/prisma';
+import {
+  InventoryMovementReferenceType,
+  InventoryMovementType,
+  Prisma,
+} from '@prisma/client';
+import {
+  inventoryCreateSchema,
+  inventoryUpdateSchema,
+  inventoryMovementSchema,
+  InventoryMovementValues,
+  InventoryFormValues,
+  InventoryUpdateValues,
+} from '@/lib/validation/inventory';
 
-export interface CreateInventoryData {
-  commodityId: string;
-  quantity: number;
-  unit: string;
-  warehouse: string;
-  location: string;
-  quality: string;
-  costBasis: number;
-  marketValue: number;
-}
-
-export interface UpdateInventoryData {
-  quantity?: number;
-  warehouse?: string;
-  location?: string;
-  quality?: string;
-  costBasis?: number;
-  marketValue?: number;
-}
-
-export interface InventoryMovement {
-  inventoryId: string;
-  type: 'IN' | 'OUT' | 'ADJUSTMENT';
-  quantity: number;
-  reason: string;
-  reference?: string; // Trade ID, Contract ID, etc.
-}
+export type CreateInventoryData = InventoryFormValues;
+export type UpdateInventoryData = InventoryUpdateValues;
+export type InventoryMovementInput = InventoryMovementValues;
 
 // Create inventory item
 export async function createInventoryItem(data: CreateInventoryData) {
   try {
-    // Validate commodity exists
-    const commodity = await prisma.commodity.findUnique({
-      where: { id: data.commodityId }
-    });
-    
-    if (!commodity) {
-      throw new Error('Commodity not found');
-    }
+    const parsed = inventoryCreateSchema.parse(data);
 
-    // Check if similar inventory item already exists
-    const existingItem = await prisma.inventoryItem.findFirst({
-      where: {
-        commodityId: data.commodityId,
-        warehouse: data.warehouse,
-        location: data.location,
-        quality: data.quality,
-      }
-    });
-
-    if (existingItem) {
-      // Merge with existing item
-      const newQuantity = existingItem.quantity + data.quantity;
-      const newCostBasis = ((existingItem.quantity * existingItem.costBasis) + 
-                           (data.quantity * data.costBasis)) / newQuantity;
-
-      const updatedItem = await prisma.inventoryItem.update({
-        where: { id: existingItem.id },
-        data: {
-          quantity: newQuantity,
-          costBasis: newCostBasis,
-          marketValue: data.marketValue,
-          lastUpdated: new Date(),
-        },
-        include: {
-          commodity: true,
-        }
+    return await prisma.$transaction(async (tx) => {
+      const commodity = await tx.commodity.findUnique({
+        where: { id: parsed.commodityId },
       });
 
-      return updatedItem;
-    } else {
-      // Create new inventory item
-      const inventoryItem = await prisma.inventoryItem.create({
+      if (!commodity) {
+        throw new Error('Commodity not found');
+      }
+
+      const where = {
+        inventory_item_unique_slot: {
+          commodityId: parsed.commodityId,
+          warehouse: parsed.warehouse,
+          location: parsed.location,
+          quality: parsed.quality,
+        },
+      } as const;
+
+      const existingItem = await tx.inventoryItem.findUnique({
+        where,
+        include: { commodity: true },
+      });
+
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + parsed.quantity;
+        const newCostBasis =
+          (existingItem.quantity * existingItem.costBasis +
+            parsed.quantity * parsed.costBasis) /
+          newQuantity;
+
+        const updatedItem = await tx.inventoryItem.update({
+          where: { id: existingItem.id },
+          data: {
+            quantity: newQuantity,
+            costBasis: newCostBasis,
+            marketValue: parsed.marketValue,
+            lastUpdated: new Date(),
+          },
+          include: { commodity: true },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            inventoryId: existingItem.id,
+            type: InventoryMovementType.IN,
+            quantityDelta: parsed.quantity,
+            resultingQuantity: newQuantity,
+            reason: 'Lot increased via manual creation',
+            referenceType: InventoryMovementReferenceType.MANUAL,
+            unitCost: parsed.costBasis,
+            unitMarketValue: parsed.marketValue,
+          },
+        });
+
+        return updatedItem;
+      }
+
+      const inventoryItem = await tx.inventoryItem.create({
         data: {
-          ...data,
+          ...parsed,
           lastUpdated: new Date(),
         },
-        include: {
-          commodity: true,
-        }
+        include: { commodity: true },
+      });
+
+      await tx.inventoryMovement.create({
+        data: {
+          inventoryId: inventoryItem.id,
+          type: InventoryMovementType.IN,
+          quantityDelta: parsed.quantity,
+          resultingQuantity: parsed.quantity,
+          reason: 'Initial lot creation',
+          referenceType: InventoryMovementReferenceType.MANUAL,
+          unitCost: parsed.costBasis,
+          unitMarketValue: parsed.marketValue,
+        },
       });
 
       return inventoryItem;
-    }
+    });
   } catch (error) {
     console.error('Error creating inventory item:', error);
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw new Error('Lot already exists—try adjusting stock instead.');
+    }
     throw error;
   }
 }
@@ -157,15 +181,17 @@ export async function getInventoryItemById(id: string) {
 // Update inventory item
 export async function updateInventoryItem(id: string, data: UpdateInventoryData) {
   try {
+    const parsed = inventoryUpdateSchema.parse(data);
+
     const updatedItem = await prisma.inventoryItem.update({
       where: { id },
       data: {
-        ...data,
+        ...parsed,
         lastUpdated: new Date(),
       },
       include: {
         commodity: true,
-      }
+      },
     });
 
     return updatedItem;
@@ -193,50 +219,128 @@ export async function deleteInventoryItem(id: string) {
 }
 
 // Process inventory movement (IN/OUT/ADJUSTMENT)
-export async function processInventoryMovement(movement: InventoryMovement) {
-  try {
-    const inventoryItem = await prisma.inventoryItem.findUnique({
-      where: { id: movement.inventoryId },
-      include: { commodity: true }
-    });
+async function applyInventoryMovement(
+  tx: Prisma.TransactionClient,
+  parsed: InventoryMovementValues,
+) {
+  const inventoryItem = await tx.inventoryItem.findUnique({
+    where: { id: parsed.inventoryId },
+    include: { commodity: true },
+  });
 
-    if (!inventoryItem) {
-      throw new Error('Inventory item not found');
-    }
+  if (!inventoryItem) {
+    throw new Error('Inventory item not found');
+  }
 
-    let newQuantity: number;
-    
-    switch (movement.type) {
-      case 'IN':
-        newQuantity = inventoryItem.quantity + movement.quantity;
-        break;
-      case 'OUT':
-        newQuantity = inventoryItem.quantity - movement.quantity;
-        if (newQuantity < 0) {
-          throw new Error('Insufficient inventory quantity');
-        }
-        break;
-      case 'ADJUSTMENT':
-        newQuantity = movement.quantity; // Direct adjustment to specific quantity
-        break;
-      default:
-        throw new Error('Invalid movement type');
-    }
+  let newQuantity = inventoryItem.quantity;
+  let quantityDelta = 0;
 
-    const updatedItem = await prisma.inventoryItem.update({
-      where: { id: movement.inventoryId },
-      data: {
-        quantity: newQuantity,
-        lastUpdated: new Date(),
-      },
-      include: {
-        commodity: true,
+  switch (parsed.type) {
+    case 'IN':
+      newQuantity += parsed.quantity;
+      quantityDelta = parsed.quantity;
+      break;
+    case 'OUT':
+      newQuantity -= parsed.quantity;
+      quantityDelta = -parsed.quantity;
+      if (newQuantity < 0) {
+        throw new Error('Insufficient inventory quantity');
       }
-    });
+      break;
+    case 'ADJUSTMENT':
+      quantityDelta = parsed.quantity - inventoryItem.quantity;
+      newQuantity = parsed.quantity;
+      break;
+    default:
+      throw new Error('Invalid movement type');
+  }
 
-    return updatedItem;
+  if (newQuantity < 0) {
+    throw new Error('Resulting quantity cannot be negative');
+  }
+
+  let costBasis = inventoryItem.costBasis;
+  if (parsed.type === 'IN' && parsed.unitCost !== undefined) {
+    const totalCost =
+      inventoryItem.quantity * inventoryItem.costBasis +
+      parsed.quantity * parsed.unitCost;
+    costBasis = newQuantity > 0 ? totalCost / newQuantity : parsed.unitCost;
+  } else if (parsed.type === 'ADJUSTMENT' && parsed.unitCost !== undefined) {
+    costBasis = parsed.unitCost;
+  }
+
+  const marketValue = parsed.unitMarketValue ?? inventoryItem.marketValue;
+
+  const updatedItem = await tx.inventoryItem.update({
+    where: { id: parsed.inventoryId },
+    data: {
+      quantity: newQuantity,
+      costBasis,
+      marketValue,
+      lastUpdated: new Date(),
+    },
+    include: {
+      commodity: true,
+    },
+  });
+
+  await tx.inventoryMovement.create({
+    data: {
+      inventoryId: parsed.inventoryId,
+      type: InventoryMovementType[
+        parsed.type as keyof typeof InventoryMovementType
+      ],
+      quantityDelta,
+      resultingQuantity: newQuantity,
+      reason: parsed.reason,
+      referenceType: parsed.referenceType
+        ? InventoryMovementReferenceType[
+            parsed.referenceType as keyof typeof InventoryMovementReferenceType
+          ]
+        : undefined,
+      referenceId: parsed.referenceId,
+      unitCost: parsed.unitCost ?? costBasis,
+      unitMarketValue: marketValue,
+    },
+  });
+
+  return updatedItem;
+}
+
+export async function processInventoryMovement(
+  movement: InventoryMovementInput,
+  tx?: Prisma.TransactionClient,
+) {
+  try {
+    const parsed = inventoryMovementSchema.parse(movement);
+
+    if (tx) {
+      return applyInventoryMovement(tx, parsed);
+    }
+
+    return prisma.$transaction((transaction) =>
+      applyInventoryMovement(transaction, parsed),
+    );
   } catch (error) {
     console.error('Error processing inventory movement:', error);
+    throw error;
+  }
+}
+
+export async function getInventoryMovementsForItem(
+  inventoryId: string,
+  options?: { limit?: number },
+) {
+  try {
+    const movements = await prisma.inventoryMovement.findMany({
+      where: { inventoryId },
+      orderBy: { createdAt: 'desc' },
+      take: options?.limit ?? 50,
+    });
+
+    return movements;
+  } catch (error) {
+    console.error('Error fetching inventory movements:', error);
     throw error;
   }
 }
@@ -261,31 +365,112 @@ export async function getInventoryValuation(filters?: {
       }
     });
 
-    const valuation = inventoryItems.reduce((acc, item) => {
-      const costValue = item.quantity * item.costBasis;
-      const marketValue = item.quantity * item.marketValue;
-      const unrealizedPnL = marketValue - costValue;
+    const commodityMap = new Map<
+      string,
+      {
+        commodityId: string;
+        commodityName: string;
+        quantity: number;
+        costValue: number;
+        marketValue: number;
+        unrealizedPnL: number;
+      }
+    >();
 
-      acc.totalCostValue += costValue;
-      acc.totalMarketValue += marketValue;
-      acc.totalUnrealizedPnL += unrealizedPnL;
-      acc.totalItems += 1;
-      acc.totalQuantity += item.quantity;
+    const warehouseMap = new Map<
+      string,
+      {
+        key: string;
+        warehouse: string;
+        location: string;
+        quantity: number;
+        costValue: number;
+        marketValue: number;
+        unrealizedPnL: number;
+      }
+    >();
 
-      return acc;
-    }, {
-      totalCostValue: 0,
-      totalMarketValue: 0,
-      totalUnrealizedPnL: 0,
-      totalItems: 0,
-      totalQuantity: 0,
-    });
+    const valuation = inventoryItems.reduce(
+      (acc, item) => {
+        const costValue = item.quantity * item.costBasis;
+        const marketValue = item.quantity * item.marketValue;
+        const unrealizedPnL = marketValue - costValue;
+
+        acc.totalCostValue += costValue;
+        acc.totalMarketValue += marketValue;
+        acc.totalUnrealizedPnL += unrealizedPnL;
+        acc.totalItems += 1;
+        acc.totalQuantity += item.quantity;
+        acc.latestUpdate = Math.max(
+          acc.latestUpdate,
+          item.lastUpdated.getTime(),
+        );
+
+        const commodityEntry = commodityMap.get(item.commodityId) ?? {
+          commodityId: item.commodityId,
+          commodityName: item.commodity.name,
+          quantity: 0,
+          costValue: 0,
+          marketValue: 0,
+          unrealizedPnL: 0,
+        };
+
+        commodityEntry.quantity += item.quantity;
+        commodityEntry.costValue += costValue;
+        commodityEntry.marketValue += marketValue;
+        commodityEntry.unrealizedPnL += unrealizedPnL;
+
+        commodityMap.set(item.commodityId, commodityEntry);
+
+        const warehouseKey = `${item.warehouse}::${item.location}`;
+        const warehouseEntry = warehouseMap.get(warehouseKey) ?? {
+          key: warehouseKey,
+          warehouse: item.warehouse,
+          location: item.location,
+          quantity: 0,
+          costValue: 0,
+          marketValue: 0,
+          unrealizedPnL: 0,
+        };
+
+        warehouseEntry.quantity += item.quantity;
+        warehouseEntry.costValue += costValue;
+        warehouseEntry.marketValue += marketValue;
+        warehouseEntry.unrealizedPnL += unrealizedPnL;
+
+        warehouseMap.set(warehouseKey, warehouseEntry);
+
+        return acc;
+      },
+      {
+        totalCostValue: 0,
+        totalMarketValue: 0,
+        totalUnrealizedPnL: 0,
+        totalItems: 0,
+        totalQuantity: 0,
+        latestUpdate: 0,
+      },
+    );
+
+    const commodityBreakdown = Array.from(commodityMap.values()).sort(
+      (a, b) => b.marketValue - a.marketValue,
+    );
+    const warehouseBreakdown = Array.from(warehouseMap.values()).sort(
+      (a, b) => b.marketValue - a.marketValue,
+    );
 
     return {
       ...valuation,
-      averageUnrealizedPnLPercent: valuation.totalCostValue > 0 
-        ? (valuation.totalUnrealizedPnL / valuation.totalCostValue) * 100 
-        : 0,
+      averageUnrealizedPnLPercent:
+        valuation.totalCostValue > 0
+          ? (valuation.totalUnrealizedPnL / valuation.totalCostValue) * 100
+          : 0,
+      commodityBreakdown,
+      warehouseBreakdown,
+      lastValuationTimestamp:
+        valuation.latestUpdate > 0
+          ? new Date(valuation.latestUpdate)
+          : undefined,
     };
   } catch (error) {
     console.error('Error calculating inventory valuation:', error);
