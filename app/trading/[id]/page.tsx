@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,16 +19,93 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import { useTradeById } from "@/lib/hooks/use-trades";
+import {
+  useTradeById,
+  useExecuteTrade,
+  useCancelTrade,
+  useUpdateTrade,
+} from "@/lib/hooks/use-trades";
 import { useShipments } from "@/lib/hooks/use-shipments";
+import { useToast } from "@/hooks/use-toast";
+import { TradeStatus } from "@prisma/client";
 
 export default function TradeDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const tradeId = params.id as string;
 
-  const { data: trade, isLoading, error } = useTradeById(tradeId);
+  const { toast } = useToast();
+  const { data: trade, isLoading, error, refetch } = useTradeById(tradeId);
   const { data: shipments = [] } = useShipments({ tradeId });
+  const executeTradeMutation = useExecuteTrade();
+  const cancelTradeMutation = useCancelTrade();
+  const updateTradeMutation = useUpdateTrade();
+
+  const handleExecuteTrade = useCallback(async () => {
+    try {
+      await executeTradeMutation.mutateAsync(tradeId);
+      toast({
+        title: "Trade executed",
+        description: "Inventory has been updated based on this trade.",
+      });
+      await refetch();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred while executing the trade.";
+      toast({
+        title: "Unable to execute trade",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  }, [executeTradeMutation, refetch, toast, tradeId]);
+
+  const handleCancelTrade = useCallback(async () => {
+    try {
+      await cancelTradeMutation.mutateAsync(tradeId);
+      toast({
+        title: "Trade cancelled",
+        description: "The trade has been cancelled and credit has been released.",
+      });
+      await refetch();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred while cancelling the trade.";
+      toast({
+        title: "Unable to cancel trade",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  }, [cancelTradeMutation, refetch, toast, tradeId]);
+
+  const handleSettleTrade = useCallback(async () => {
+    try {
+      await updateTradeMutation.mutateAsync({
+        id: tradeId,
+        data: { status: TradeStatus.SETTLED },
+      });
+      toast({
+        title: "Trade settled",
+        description: "The trade has been marked as settled.",
+      });
+      await refetch();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred while settling the trade.";
+      toast({
+        title: "Unable to settle trade",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  }, [refetch, toast, tradeId, updateTradeMutation]);
 
   if (isLoading) {
     return (
@@ -300,20 +377,49 @@ export default function TradeDetailsPage() {
               <div className="space-y-2">
                 {trade.status === "OPEN" && (
                   <>
-                    <Button className="w-full" size="sm">
-                      Execute Trade
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      onClick={handleExecuteTrade}
+                      disabled={executeTradeMutation.isPending}
+                    >
+                      {executeTradeMutation.isPending
+                        ? "Executing…"
+                        : "Execute Trade"}
                     </Button>
-                    <Button variant="outline" className="w-full" size="sm">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                      onClick={() =>
+                        router.push(`/trading?editTradeId=${trade.id}`)
+                      }
+                    >
                       Modify Trade
                     </Button>
-                    <Button variant="destructive" className="w-full" size="sm">
-                      Cancel Trade
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      size="sm"
+                      onClick={handleCancelTrade}
+                      disabled={cancelTradeMutation.isPending}
+                    >
+                      {cancelTradeMutation.isPending
+                        ? "Cancelling…"
+                        : "Cancel Trade"}
                     </Button>
                   </>
                 )}
                 {trade.status === "EXECUTED" && (
-                  <Button className="w-full" size="sm">
-                    Mark as Settled
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    onClick={handleSettleTrade}
+                    disabled={updateTradeMutation.isPending}
+                  >
+                    {updateTradeMutation.isPending
+                      ? "Updating…"
+                      : "Mark as Settled"}
                   </Button>
                 )}
                 <Button variant="outline" className="w-full" size="sm">
