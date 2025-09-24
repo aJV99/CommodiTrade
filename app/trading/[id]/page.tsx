@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,24 +43,22 @@ export default function TradeDetailsPage() {
 
   const handleExecuteTrade = useCallback(async () => {
     try {
-      await executeTradeMutation.mutateAsync(tradeId);
+      if (!trade) return;
+
+      await executeTradeMutation.mutateAsync({
+        id: tradeId,
+        warehouse: trade.location,
+        location: trade.location,
+      });
       toast({
         title: "Trade executed",
         description: "Inventory has been updated based on this trade.",
       });
       await refetch();
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "An unexpected error occurred while executing the trade.";
-      toast({
-        title: "Unable to execute trade",
-        description: message,
-        variant: "destructive",
-      });
+      console.error("Unable to execute trade", err);
     }
-  }, [executeTradeMutation, refetch, toast, tradeId]);
+  }, [executeTradeMutation, refetch, toast, trade, tradeId]);
 
   const handleCancelTrade = useCallback(async () => {
     try {
@@ -71,15 +69,7 @@ export default function TradeDetailsPage() {
       });
       await refetch();
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "An unexpected error occurred while cancelling the trade.";
-      toast({
-        title: "Unable to cancel trade",
-        description: message,
-        variant: "destructive",
-      });
+      console.error("Unable to cancel trade", err);
     }
   }, [cancelTradeMutation, refetch, toast, tradeId]);
 
@@ -95,17 +85,100 @@ export default function TradeDetailsPage() {
       });
       await refetch();
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "An unexpected error occurred while settling the trade.";
-      toast({
-        title: "Unable to settle trade",
-        description: message,
-        variant: "destructive",
-      });
+      console.error("Unable to settle trade", err);
     }
   }, [refetch, toast, tradeId, updateTradeMutation]);
+
+  const handleGenerateReport = useCallback(() => {
+    if (!trade) return;
+
+    const headers = [
+      "Trade ID",
+      "Commodity",
+      "Type",
+      "Quantity",
+      "Price",
+      "Total Value",
+      "Counterparty",
+      "Status",
+      "Trade Date",
+      "Settlement Date",
+    ];
+
+    const tradeRow = [
+      trade.id,
+      trade.commodity.name,
+      trade.type,
+      trade.quantity.toString(),
+      trade.price.toFixed(2),
+      trade.totalValue.toFixed(2),
+      trade.counterparty.name,
+      trade.status,
+      new Date(trade.tradeDate).toISOString(),
+      new Date(trade.settlementDate).toISOString(),
+    ];
+
+    const shipmentRows = shipments.map((shipment) => [
+      shipment.id,
+      shipment.trackingNumber,
+      shipment.status,
+      shipment.quantity.toString(),
+      shipment.origin,
+      shipment.destination,
+      shipment.expectedArrival
+        ? new Date(shipment.expectedArrival).toISOString()
+        : "",
+    ]);
+
+    const shipmentHeader = [
+      "\nShipment ID",
+      "Tracking",
+      "Status",
+      "Quantity",
+      "Origin",
+      "Destination",
+      "Expected Arrival",
+    ];
+
+    const csvLines = [
+      headers.join(","),
+      tradeRow.join(","),
+      shipmentHeader.join(","),
+      ...shipmentRows.map((row) => row.join(",")),
+    ];
+
+    const csvContent = csvLines.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `trade-${trade.id}-report.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Report generated",
+      description: "A CSV download has started.",
+    });
+  }, [shipments, toast, trade]);
+
+  const shipmentTimelineEvents = useMemo(() => {
+    return shipments
+      .flatMap((shipment) =>
+        (shipment.events ?? []).map((event) => ({
+          id: `${shipment.id}-${event.id}`,
+          timestamp: event.timestamp,
+          status: event.status,
+          location: event.location,
+          notes: event.notes,
+          trackingNumber: shipment.trackingNumber,
+        })),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+  }, [shipments]);
 
   if (isLoading) {
     return (
@@ -157,12 +230,14 @@ export default function TradeDetailsPage() {
   const getShipmentStatusColor = (status: string) => {
     switch (status) {
       case "PREPARING":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-amber-100 text-amber-800";
       case "IN_TRANSIT":
         return "bg-blue-100 text-blue-800";
       case "DELIVERED":
         return "bg-green-100 text-green-800";
       case "DELAYED":
+        return "bg-red-100 text-red-800";
+      case "CANCELLED":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -422,7 +497,12 @@ export default function TradeDetailsPage() {
                       : "Mark as Settled"}
                   </Button>
                 )}
-                <Button variant="outline" className="w-full" size="sm">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  size="sm"
+                  onClick={handleGenerateReport}
+                >
                   Generate Report
                 </Button>
               </div>
@@ -497,11 +577,11 @@ export default function TradeDetailsPage() {
                           {shipment.status.replace("_", " ")}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-slate-700">
-                        {formatDate(shipment.expectedArrival)}
-                      </td>
-                      <td className="py-3 px-4">
-                        <code className="text-xs bg-slate-100 px-2 py-1 rounded">
+                    <td className="py-3 px-4 text-slate-700">
+                      {formatDate(shipment.expectedArrival)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <code className="text-xs bg-slate-100 px-2 py-1 rounded">
                           {shipment.trackingNumber}
                         </code>
                       </td>
@@ -566,6 +646,21 @@ export default function TradeDetailsPage() {
               </div>
             )}
 
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-indigo-600 rounded-full mt-2"></div>
+              <div>
+                <div className="font-medium text-slate-900">
+                  Target Settlement Date
+                </div>
+                <div className="text-sm text-slate-600">
+                  {formatDate(trade.settlementDate)}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Planned settlement for this trade
+                </div>
+              </div>
+            </div>
+
             {shipments.map((shipment) => (
               <div key={shipment.id} className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-purple-600 rounded-full mt-2"></div>
@@ -579,6 +674,27 @@ export default function TradeDetailsPage() {
                   <div className="text-xs text-slate-500 mt-1">
                     Shipment {shipment.id} created for{" "}
                     {shipment.quantity.toLocaleString()} units
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {shipmentTimelineEvents.map((event) => (
+              <div key={event.id} className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-amber-500 rounded-full mt-2"></div>
+                <div>
+                  <div className="font-medium text-slate-900">
+                    Shipment {event.trackingNumber} updated to {" "}
+                    {event.status.replace("_", " ")}
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    {formatDateTime(event.timestamp)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {event.notes ||
+                      (event.location
+                        ? `Location: ${event.location}`
+                        : "Status change recorded")}
                   </div>
                 </div>
               </div>

@@ -206,6 +206,9 @@ export async function getShipments(filters?: {
           },
         },
         commodity: true,
+        events: {
+          orderBy: { timestamp: "desc" },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: filters?.limit || 100,

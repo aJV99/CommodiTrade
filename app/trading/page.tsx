@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import { TradeModal } from "@/components/modals/trade-modal";
-import { useTrades } from "@/lib/hooks/use-trades";
+import {
+  useTrades,
+  useTradeStatistics,
+  useTradeById,
+} from "@/lib/hooks/use-trades";
 import { TradeStatus, TradeType } from "@prisma/client";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -39,17 +43,52 @@ function TradingPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const commodityIdFilter = searchParams.get("commodityId") ?? undefined;
+  const editTradeId = searchParams.get("editTradeId");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { data: commodities = [] } = useCommodities();
 
   const {
     data: trades = [],
     isLoading,
+    error,
     refetch,
   } = useTrades({
     status: statusFilter !== "all" ? (statusFilter as TradeStatus) : undefined,
     type: typeFilter !== "all" ? (typeFilter as TradeType) : undefined,
     commodityId: commodityIdFilter,
   });
+
+  const { data: statistics, isLoading: statisticsLoading } = useTradeStatistics();
+
+  const {
+    data: tradeToEdit,
+    isLoading: isEditLoading,
+  } = useTradeById(editTradeId ?? "", {
+    enabled: Boolean(editTradeId),
+  });
+
+  useEffect(() => {
+    if (editTradeId) {
+      setIsEditModalOpen(true);
+    }
+  }, [editTradeId]);
+
+  const clearEditQuery = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("editTradeId");
+    const queryString = params.toString();
+    router.push(queryString ? `/trading?${queryString}` : "/trading");
+  }, [router, searchParams]);
+
+  const handleEditModalChange = useCallback(
+    (open: boolean) => {
+      setIsEditModalOpen(open);
+      if (!open) {
+        clearEditQuery();
+      }
+    },
+    [clearEditQuery],
+  );
 
   const filteredTrades = trades.filter((trade) => {
     if (!searchTerm) return true;
@@ -106,7 +145,74 @@ function TradingPageContent() {
             Manage your commodity trades and orders
           </p>
         </div>
-        <TradeModal onTradeCreated={refetch} />
+        <TradeModal mode="create" onSuccess={refetch} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Notional
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold text-slate-900">
+              {statisticsLoading
+                ? "—"
+                : `$${(statistics?.totalValue ?? 0).toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}`}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Across all recorded trades
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Open Trades
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold text-slate-900">
+              {statisticsLoading ? "—" : statistics?.openTrades ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Trades awaiting execution
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Executed Trades
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold text-slate-900">
+              {statisticsLoading ? "—" : statistics?.executedTrades ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting settlement logistics
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Cancelled Trades
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold text-slate-900">
+              {statisticsLoading ? "—" : statistics?.cancelledTrades ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Removed from the execution stack
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {commodityIdFilter && (
@@ -205,56 +311,107 @@ function TradingPageContent() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTrades.map((trade) => (
-                  <tr
-                    key={trade.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="py-3 px-4 font-medium text-slate-900">
-                      {trade.id}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {trade.commodity.name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge className={getTypeColor(trade.type)}>
-                        {trade.type}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {trade.quantity.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      ${trade.price.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900">
-                      ${trade.totalValue.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {trade.counterparty.name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge className={getStatusColor(trade.status)}>
-                        {trade.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {new Date(trade.tradeDate).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/trading/${trade.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </Link>
+                {error ? (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-6 text-center text-sm text-destructive"
+                    >
+                      Unable to load trades. Please refresh the page or try again
+                      shortly.
                     </td>
                   </tr>
-                ))}
+                ) : filteredTrades.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
+                      No trades match your current filters.
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setStatusFilter("all");
+                            setTypeFilter("all");
+                            if (commodityIdFilter) {
+                              router.push("/trading");
+                            }
+                          }}
+                        >
+                          Clear filters
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTrades.map((trade) => (
+                    <tr
+                      key={trade.id}
+                      className="border-b border-slate-100 hover:bg-slate-50"
+                    >
+                      <td className="py-3 px-4 font-medium text-slate-900">
+                        {trade.id}
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">
+                        {trade.commodity.name}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge className={getTypeColor(trade.type)}>
+                          {trade.type}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">
+                        {trade.quantity.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">
+                        ${trade.price.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-slate-900">
+                        ${trade.totalValue.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">
+                        {trade.counterparty.name}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge className={getStatusColor(trade.status)}>
+                          {trade.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">
+                        {new Date(trade.tradeDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Link href={`/trading/${trade.id}`}>
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      {editTradeId && (
+        <TradeModal
+          mode="edit"
+          trade={tradeToEdit ?? null}
+          isLoading={isEditLoading}
+          open={isEditModalOpen}
+          onOpenChange={handleEditModalChange}
+          onSuccess={() => {
+            refetch();
+            clearEditQuery();
+          }}
+        />
+      )}
     </div>
   );
 }

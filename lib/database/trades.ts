@@ -22,6 +22,13 @@ export interface UpdateTradeData {
   location?: string;
 }
 
+export interface ExecuteTradeOptions {
+  id: string;
+  warehouse?: string;
+  quality?: string;
+  location?: string;
+}
+
 // Create a new trade
 export async function createTrade(data: CreateTradeData) {
   try {
@@ -167,38 +174,80 @@ export async function getTradeById(id: string) {
 // Update trade
 export async function updateTrade(id: string, data: UpdateTradeData) {
   try {
-    const existingTrade = await prisma.trade.findUnique({
-      where: { id },
-      include: { commodity: true },
-    });
+    return await prisma.$transaction(async (tx) => {
+      const existingTrade = await tx.trade.findUnique({
+        where: { id },
+        include: { commodity: true, counterparty: true },
+      });
 
-    if (!existingTrade) {
-      throw new Error("Trade not found");
-    }
+      if (!existingTrade) {
+        throw new Error("Trade not found");
+      }
 
-    // Calculate new total value if quantity or price changed
-    let totalValue = existingTrade.totalValue;
-    if (data.quantity !== undefined || data.price !== undefined) {
+      if (!existingTrade.counterparty) {
+        throw new Error("Trade counterparty could not be determined");
+      }
+
       const newQuantity = data.quantity ?? existingTrade.quantity;
       const newPrice = data.price ?? existingTrade.price;
-      totalValue = newQuantity * newPrice;
-    }
+      const nextStatus = data.status ?? existingTrade.status;
+      const recalculatedTotalValue = newQuantity * newPrice;
 
-    const updatedTrade = await prisma.trade.update({
-      where: { id },
-      data: {
-        ...data,
-        totalValue,
-        updatedAt: new Date(),
-      },
-      include: {
-        commodity: true,
-        user: true,
-        shipments: true,
-      },
+      const exposureStatuses = new Set<TradeStatus>([
+        TradeStatus.OPEN,
+        TradeStatus.EXECUTED,
+      ]);
+
+      let projectedCreditUsed = existingTrade.counterparty.creditUsed;
+
+      if (exposureStatuses.has(existingTrade.status)) {
+        projectedCreditUsed -= existingTrade.totalValue;
+      }
+
+      if (exposureStatuses.has(nextStatus)) {
+        projectedCreditUsed += recalculatedTotalValue;
+      }
+
+      if (projectedCreditUsed < 0) {
+        projectedCreditUsed = 0;
+      }
+
+      if (projectedCreditUsed > existingTrade.counterparty.creditLimit) {
+        throw new Error(
+          "Updating this trade would exceed the counterparty credit limit",
+        );
+      }
+
+      const updatedTrade = await tx.trade.update({
+        where: { id },
+        data: {
+          ...data,
+          totalValue: recalculatedTotalValue,
+          updatedAt: new Date(),
+        },
+        include: {
+          commodity: true,
+          user: true,
+          shipments: true,
+        },
+      });
+
+      const volumeDelta = newQuantity - existingTrade.quantity;
+
+      await tx.counterparty.update({
+        where: { id: existingTrade.counterpartyId },
+        data: {
+          creditUsed: projectedCreditUsed,
+          totalVolume: Math.max(
+            0,
+            existingTrade.counterparty.totalVolume + volumeDelta,
+          ),
+          lastTradeDate: new Date(),
+        },
+      });
+
+      return updatedTrade;
     });
-
-    return updatedTrade;
   } catch (error) {
     console.error("Error updating trade:", error);
     throw error;
@@ -206,7 +255,12 @@ export async function updateTrade(id: string, data: UpdateTradeData) {
 }
 
 // Execute trade (change status to EXECUTED)
-export async function executeTrade(id: string) {
+export async function executeTrade({
+  id,
+  warehouse,
+  quality,
+  location,
+}: ExecuteTradeOptions) {
   try {
     const trade = await prisma.trade.findUnique({
       where: { id },
@@ -221,6 +275,10 @@ export async function executeTrade(id: string) {
       throw new Error("Only open trades can be executed");
     }
 
+    const preferredLocation = location ?? trade.location;
+    const preferredWarehouse = warehouse ?? preferredLocation ?? "Main Warehouse";
+    const preferredQuality = quality ?? "Standard";
+
     const executedTrade = await prisma.$transaction(async (tx) => {
       // Update trade status
       const updatedTrade = await tx.trade.update({
@@ -232,18 +290,17 @@ export async function executeTrade(id: string) {
         include: {
           commodity: true,
           user: true,
+          shipments: true,
         },
       });
-
-      const defaultWarehouse = "Main Warehouse";
 
       if (trade.type === TradeType.BUY) {
         const existingInventory = await tx.inventoryItem.findFirst({
           where: {
             commodityId: trade.commodityId,
-            warehouse: defaultWarehouse,
-            location: trade.location,
-            quality: "Standard",
+            warehouse: preferredWarehouse,
+            location: preferredLocation ?? preferredWarehouse,
+            quality: preferredQuality,
           },
         });
 
@@ -254,9 +311,9 @@ export async function executeTrade(id: string) {
               commodityId: trade.commodityId,
               quantity: 0,
               unit: trade.commodity.unit,
-              warehouse: defaultWarehouse,
-              location: trade.location,
-              quality: "Standard",
+              warehouse: preferredWarehouse,
+              location: preferredLocation ?? preferredWarehouse,
+              quality: preferredQuality,
               costBasis: trade.price,
               marketValue: trade.commodity.currentPrice,
             },
@@ -277,28 +334,53 @@ export async function executeTrade(id: string) {
           tx,
         );
       } else {
-        const lot = await tx.inventoryItem.findFirst({
+        const locationFilter = preferredLocation ?? undefined;
+
+        let candidateLots = await tx.inventoryItem.findMany({
           where: {
             commodityId: trade.commodityId,
-            location: trade.location,
+            ...(preferredWarehouse ? { warehouse: preferredWarehouse } : {}),
+            ...(locationFilter ? { location: locationFilter } : {}),
+            ...(preferredQuality ? { quality: preferredQuality } : {}),
           },
           orderBy: { lastUpdated: "desc" },
         });
 
-        const fallbackLot = lot
-          ? lot
-          : await tx.inventoryItem.findFirst({
-              where: { commodityId: trade.commodityId },
-              orderBy: { lastUpdated: "desc" },
-            });
+        if (candidateLots.length === 0) {
+          candidateLots = await tx.inventoryItem.findMany({
+            where: { commodityId: trade.commodityId },
+            orderBy: { lastUpdated: "desc" },
+          });
+        }
 
-        if (!fallbackLot) {
+        if (candidateLots.length === 0) {
           throw new Error("No inventory available for SELL execution");
+        }
+
+        const totalAvailable = candidateLots.reduce(
+          (sum, lot) => sum + lot.quantity,
+          0,
+        );
+
+        if (totalAvailable < trade.quantity) {
+          throw new Error(
+            "Insufficient inventory to cover this SELL trade quantity",
+          );
+        }
+
+        const selectedLot = candidateLots.find(
+          (lot) => lot.quantity >= trade.quantity,
+        );
+
+        if (!selectedLot) {
+          throw new Error(
+            "No single inventory lot can cover the requested SELL quantity",
+          );
         }
 
         await processInventoryMovement(
           {
-            inventoryId: fallbackLot.id,
+            inventoryId: selectedLot.id,
             type: "OUT",
             quantity: trade.quantity,
             reason: `Trade ${trade.id} execution`,
