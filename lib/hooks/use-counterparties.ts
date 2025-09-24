@@ -21,6 +21,7 @@ export function useCounterparties(filters?: {
   creditUtilizationMax?: number;
   limit?: number;
   offset?: number;
+  searchTerm?: string;
 }) {
   return useQuery({
     queryKey: ['counterparties', filters],

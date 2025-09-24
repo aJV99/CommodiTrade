@@ -1,269 +1,441 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Users, Building, TrendingUp, CreditCard } from 'lucide-react';
-import { getCounterparties, Counterparty } from '@/lib/mock-data';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search, Plus, Users, CreditCard, TrendingUp, type LucideIcon } from 'lucide-react';
+import { CounterpartyTable } from '@/components/counterparties/counterparty-table';
+import { CounterpartyModal } from '@/components/modals/counterparty-modal';
+import { CounterpartyCreditModal } from '@/components/modals/counterparty-credit-modal';
+import { DeleteCounterpartyModal } from '@/components/modals/delete-counterparty-modal';
+import { CounterpartyRiskPanel } from '@/components/counterparties/counterparty-risk-panel';
+import {
+  useCounterparties,
+  useCounterpartyStatistics,
+  useCreditRiskCounterparties,
+} from '@/lib/hooks/use-counterparties';
+import { RatingDistributionChart, TypeDistributionChart } from '@/components/counterparties/counterparty-distribution-charts';
+import type { CounterpartyTableRow } from '@/components/counterparties/counterparty-table';
+import { CounterpartyType, CreditRating } from '@prisma/client';
+import { useToast } from '@/hooks/use-toast';
+
+const pageSize = 10;
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export default function CounterpartiesPage() {
-  const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
-  const [filteredCounterparties, setFilteredCounterparties] = useState<Counterparty[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [ratingFilter, setRatingFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | CounterpartyType>('all');
+  const [ratingFilter, setRatingFilter] = useState<'all' | CreditRating>('all');
+  const [page, setPage] = useState(0);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingCounterparty, setEditingCounterparty] = useState<CounterpartyTableRow | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [creditCounterparty, setCreditCounterparty] = useState<CounterpartyTableRow | null>(null);
+  const [isCreditOpen, setIsCreditOpen] = useState(false);
+  const [deleteCounterparty, setDeleteCounterparty] = useState<CounterpartyTableRow | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
+  const { toast } = useToast();
+
+  const {
+    data: counterparties = [],
+    isLoading,
+    isFetching,
+    refetch,
+    error,
+  } = useCounterparties({
+    type: typeFilter === 'all' ? undefined : typeFilter,
+    rating: ratingFilter === 'all' ? undefined : ratingFilter,
+    searchTerm: debouncedSearch ? debouncedSearch : undefined,
+    limit: pageSize,
+    offset: page * pageSize,
+  });
 
   useEffect(() => {
-    const fetchCounterparties = async () => {
-      try {
-        const counterpartiesData = await getCounterparties();
-        setCounterparties(counterpartiesData);
-        setFilteredCounterparties(counterpartiesData);
-      } catch (error) {
-        console.error('Error fetching counterparties:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (error) {
+      toast({
+        title: 'Unable to load counterparties',
+        description: 'Please refresh the page or adjust your filters.',
+        variant: 'destructive',
+      });
+    }
+  }, [error, toast]);
 
-    fetchCounterparties();
-  }, []);
+  const { data: statistics, isLoading: statisticsLoading } = useCounterpartyStatistics();
+  const {
+    data: creditRisk = [],
+    isLoading: creditRiskLoading,
+  } = useCreditRiskCounterparties();
 
   useEffect(() => {
-    let filtered = counterparties;
+    setPage(0);
+  }, [typeFilter, ratingFilter, debouncedSearch]);
 
-    if (searchTerm) {
-      filtered = filtered.filter(
-        counterparty =>
-          counterparty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          counterparty.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          counterparty.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const hasNextPage = counterparties.length === pageSize;
+
+  const exportCsv = () => {
+    if (!counterparties.length) {
+      toast({
+        title: 'No data to export',
+        description: 'Adjust your filters to include counterparties before exporting.',
+      });
+      return;
     }
 
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(counterparty => counterparty.type === typeFilter);
-    }
+    const header = [
+      'Name',
+      'Type',
+      'Country',
+      'Rating',
+      'Credit Limit',
+      'Credit Used',
+      'Total Trades',
+      'Total Volume',
+      'Email',
+      'Phone',
+    ];
 
-    if (ratingFilter !== 'all') {
-      filtered = filtered.filter(counterparty => counterparty.rating === ratingFilter);
-    }
+    const rows = counterparties.map(counterparty => [
+      counterparty.name,
+      counterparty.type,
+      counterparty.country,
+      counterparty.rating,
+      counterparty.creditLimit,
+      counterparty.creditUsed,
+      counterparty.totalTrades,
+      counterparty.totalVolume,
+      counterparty.email,
+      counterparty.phone,
+    ]);
 
-    setFilteredCounterparties(filtered);
-  }, [counterparties, searchTerm, typeFilter, ratingFilter]);
+    const csvContent = [header, ...rows]
+      .map(columns =>
+        columns
+          .map(value => {
+            if (value === null || value === undefined) return '';
+            const stringValue = String(value).replaceAll('"', '""');
+            return `"${stringValue}"`;
+          })
+          .join(',')
+      )
+      .join('\n');
 
-  const getRatingColor = (rating: Counterparty['rating']) => {
-    switch (rating) {
-      case 'AAA':
-        return 'bg-green-100 text-green-800';
-      case 'AA':
-        return 'bg-green-100 text-green-700';
-      case 'A':
-        return 'bg-blue-100 text-blue-800';
-      case 'BBB':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'BB':
-        return 'bg-orange-100 text-orange-800';
-      case 'B':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'counterparties.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  const getTypeColor = (type: Counterparty['type']) => {
-    switch (type) {
-      case 'Supplier':
-        return 'text-blue-600 bg-blue-50';
-      case 'Customer':
-        return 'text-green-600 bg-green-50';
-      case 'Both':
-        return 'text-purple-600 bg-purple-50';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleViewCounterparty = (id: string) => {
+    router.push(`/counterparties/${id}`);
   };
 
-  const totalCreditLimit = counterparties.reduce((sum, cp) => sum + cp.creditLimit, 0);
-  const totalCreditUsed = counterparties.reduce((sum, cp) => sum + cp.creditUsed, 0);
-  const totalTrades = counterparties.reduce((sum, cp) => sum + cp.totalTrades, 0);
-  const totalVolume = counterparties.reduce((sum, cp) => sum + cp.totalVolume, 0);
+  const handleEditCounterparty = (counterparty: CounterpartyTableRow) => {
+    setEditingCounterparty(counterparty);
+    setIsEditOpen(true);
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const handleCreditUpdate = (counterparty: CounterpartyTableRow) => {
+    setCreditCounterparty(counterparty);
+    setIsCreditOpen(true);
+  };
+
+  const handleDelete = (counterparty: CounterpartyTableRow) => {
+    setDeleteCounterparty(counterparty);
+    setIsDeleteOpen(true);
+  };
+
+  type StatisticCard = {
+    label: string;
+    value: string;
+    icon: LucideIcon;
+    helper?: string;
+    emphasis?: boolean;
+  };
+
+  const statisticsCards = useMemo<StatisticCard[]>(() => {
+    const formatCurrency = (value: number) =>
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+
+    if (!statistics) {
+      return [
+        { label: 'Total partners', value: '—', icon: Users },
+        { label: 'Credit limit', value: '—', icon: CreditCard },
+        { label: 'Credit used', value: '—', icon: CreditCard },
+        { label: 'Available credit', value: '—', icon: TrendingUp },
+      ];
+    }
+
+    return [
+      {
+        label: 'Total partners',
+        value: statistics.totalCounterparties.toString(),
+        icon: Users,
+        helper: 'Active relationships',
+      },
+      {
+        label: 'Credit limit',
+        value: formatCurrency(statistics.totalCreditLimit),
+        icon: CreditCard,
+        helper: 'Aggregate approved exposure',
+      },
+      {
+        label: 'Credit used',
+        value: formatCurrency(statistics.totalCreditUsed),
+        icon: CreditCard,
+        helper: `${statistics.creditUtilization.toFixed(1)}% utilized`,
+        emphasis: true,
+      },
+      {
+        label: 'Available credit',
+        value: formatCurrency(statistics.availableCredit),
+        icon: TrendingUp,
+        helper: 'Capacity remaining',
+      },
+    ];
+  }, [statistics]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Counterparties</h1>
-          <p className="text-slate-600 mt-2">Manage your trading partners and relationships</p>
+          <p className="text-slate-600">Manage your trading partners, credit exposure, and relationship insights.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Counterparty
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button variant="outline" onClick={exportCsv} disabled={isLoading || isFetching}>
+            Export CSV
+          </Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Counterparty
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Partners</CardTitle>
-            <Users className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{counterparties.length}</div>
-            <p className="text-xs text-slate-500 mt-1">Active relationships</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Credit Limit</CardTitle>
-            <CreditCard className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalCreditLimit.toLocaleString()}</div>
-            <p className="text-xs text-slate-500 mt-1">Total available</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Credit Used</CardTitle>
-            <CreditCard className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">${totalCreditUsed.toLocaleString()}</div>
-            <p className="text-xs text-slate-500 mt-1">
-              {((totalCreditUsed / totalCreditLimit) * 100).toFixed(1)}% utilized
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Volume</CardTitle>
-            <TrendingUp className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalVolume.toLocaleString()}</div>
-            <p className="text-xs text-slate-500 mt-1">{totalTrades} trades</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statisticsLoading
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="mt-2 h-3 w-32" />
+                </CardContent>
+              </Card>
+            ))
+          : statisticsCards.map((card, index) => {
+              const Icon = card.icon;
+              return (
+                <Card key={index}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">{card.label}</CardTitle>
+                    <Icon className="h-4 w-4 text-slate-400" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-2xl font-bold ${card.emphasis ? 'text-orange-600' : 'text-slate-900'}`}>
+                      {card.value}
+                    </div>
+                    {card.helper && <p className="mt-1 text-xs text-slate-500">{card.helper}</p>}
+                  </CardContent>
+                </Card>
+              );
+            })}
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <CardTitle>All Counterparties</CardTitle>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search counterparties..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
-                />
+      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
+        <Card className="h-full">
+          <CardHeader>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <CardTitle>All counterparties</CardTitle>
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:space-x-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    placeholder="Search by name, country, or contact"
+                    value={searchTerm}
+                    onChange={event => setSearchTerm(event.target.value)}
+                    className="pl-9"
+                    disabled={isLoading && !counterparties.length}
+                  />
+                </div>
+                <Select
+                  value={typeFilter}
+                  onValueChange={value => setTypeFilter(value as 'all' | CounterpartyType)}
+                  disabled={isLoading && !counterparties.length}
+                >
+                  <SelectTrigger className="w-full md:w-[160px]">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value={CounterpartyType.SUPPLIER}>Supplier</SelectItem>
+                    <SelectItem value={CounterpartyType.CUSTOMER}>Customer</SelectItem>
+                    <SelectItem value={CounterpartyType.BOTH}>Both</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={ratingFilter}
+                  onValueChange={value => setRatingFilter(value as 'all' | CreditRating)}
+                  disabled={isLoading && !counterparties.length}
+                >
+                  <SelectTrigger className="w-full md:w-[160px]">
+                    <SelectValue placeholder="Rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value={CreditRating.AAA}>AAA</SelectItem>
+                    <SelectItem value={CreditRating.AA}>AA</SelectItem>
+                    <SelectItem value={CreditRating.A}>A</SelectItem>
+                    <SelectItem value={CreditRating.BBB}>BBB</SelectItem>
+                    <SelectItem value={CreditRating.BB}>BB</SelectItem>
+                    <SelectItem value={CreditRating.B}>B</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Supplier">Supplier</SelectItem>
-                  <SelectItem value="Customer">Customer</SelectItem>
-                  <SelectItem value="Both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue placeholder="Rating" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="AAA">AAA</SelectItem>
-                  <SelectItem value="AA">AA</SelectItem>
-                  <SelectItem value="A">A</SelectItem>
-                  <SelectItem value="BBB">BBB</SelectItem>
-                  <SelectItem value="BB">BB</SelectItem>
-                  <SelectItem value="B">B</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Company</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Country</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Rating</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Credit Limit</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Credit Used</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Total Trades</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Volume</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Contact</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCounterparties.map((counterparty) => {
-                  const creditUtilization = (counterparty.creditUsed / counterparty.creditLimit) * 100;
-                  
-                  return (
-                    <tr key={counterparty.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4">
-                        <div>
-                          <div className="font-medium text-slate-900">{counterparty.name}</div>
-                          <div className="text-sm text-slate-500">{counterparty.contactPerson}</div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge className={getTypeColor(counterparty.type)}>{counterparty.type}</Badge>
-                      </td>
-                      <td className="py-3 px-4 text-slate-700">{counterparty.country}</td>
-                      <td className="py-3 px-4">
-                        <Badge className={getRatingColor(counterparty.rating)}>{counterparty.rating}</Badge>
-                      </td>
-                      <td className="py-3 px-4 text-slate-700">${counterparty.creditLimit.toLocaleString()}</td>
-                      <td className="py-3 px-4">
-                        <div className="text-slate-700">${counterparty.creditUsed.toLocaleString()}</div>
-                        <div className="text-xs text-slate-500">{creditUtilization.toFixed(1)}% used</div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-700">{counterparty.totalTrades}</td>
-                      <td className="py-3 px-4 text-slate-700">{counterparty.totalVolume.toLocaleString()}</td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm text-slate-700">{counterparty.email}</div>
-                        <div className="text-xs text-slate-500">{counterparty.phone}</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {isLoading && !counterparties.length ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton key={index} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <CounterpartyTable
+                data={counterparties as CounterpartyTableRow[]}
+                onView={handleViewCounterparty}
+                onEdit={handleEditCounterparty}
+                onCredit={handleCreditUpdate}
+                onDelete={handleDelete}
+                pagination={{
+                  page,
+                  onPrevious: () => setPage(prev => Math.max(prev - 1, 0)),
+                  onNext: () => setPage(prev => prev + 1),
+                  hasNextPage,
+                  isFetching,
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+        <CounterpartyRiskPanel data={creditRisk} isLoading={creditRiskLoading} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Rating distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RatingDistributionChart ratingDistribution={statistics?.ratingDistribution ?? {}} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Counterparty mix</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TypeDistributionChart typeDistribution={statistics?.typeDistribution ?? { suppliers: 0, customers: 0, both: 0 }} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <CounterpartyModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={() => {
+          setIsCreateOpen(false);
+          refetch();
+        }}
+      />
+
+      {editingCounterparty && (
+        <CounterpartyModal
+          open={isEditOpen}
+          onOpenChange={open => {
+            setIsEditOpen(open);
+            if (!open) {
+              setEditingCounterparty(null);
+            }
+          }}
+          counterparty={editingCounterparty}
+          onSuccess={() => {
+            setIsEditOpen(false);
+            setEditingCounterparty(null);
+            refetch();
+          }}
+        />
+      )}
+
+      {creditCounterparty && (
+        <CounterpartyCreditModal
+          open={isCreditOpen}
+          onOpenChange={open => {
+            setIsCreditOpen(open);
+            if (!open) {
+              setCreditCounterparty(null);
+            }
+          }}
+          counterparty={creditCounterparty}
+          onSuccess={() => {
+            setIsCreditOpen(false);
+            setCreditCounterparty(null);
+            refetch();
+          }}
+        />
+      )}
+
+      {deleteCounterparty && (
+        <DeleteCounterpartyModal
+          open={isDeleteOpen}
+          onOpenChange={open => {
+            setIsDeleteOpen(open);
+            if (!open) {
+              setDeleteCounterparty(null);
+            }
+          }}
+          counterpartyId={deleteCounterparty.id}
+          counterpartyName={deleteCounterparty.name}
+          onSuccess={() => {
+            setIsDeleteOpen(false);
+            setDeleteCounterparty(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }
+

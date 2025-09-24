@@ -77,6 +77,7 @@ export async function getCounterparties(filters?: {
   creditUtilizationMax?: number;
   limit?: number;
   offset?: number;
+  searchTerm?: string;
 }) {
   try {
     const where: any = {};
@@ -84,7 +85,19 @@ export async function getCounterparties(filters?: {
     if (filters?.type) where.type = filters.type;
     if (filters?.rating) where.rating = filters.rating;
     if (filters?.country) where.country = { contains: filters.country, mode: 'insensitive' };
-    
+
+    if (filters?.searchTerm) {
+      const search = filters.searchTerm.trim();
+      if (search.length > 0) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { contactPerson: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { country: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+    }
+
     if (filters?.minCreditLimit !== undefined || filters?.maxCreditLimit !== undefined) {
       where.creditLimit = {};
       if (filters.minCreditLimit !== undefined) where.creditLimit.gte = filters.minCreditLimit;
