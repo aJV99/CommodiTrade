@@ -31,14 +31,13 @@
   --color-ring: hsl(var(--ring));
 }
 
-
 @layer base {
   :root {
     color-scheme: light;
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 214, 219, 220;
     --background-end-rgb: 255, 255, 255;
-    --font-sans: 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif';
+    --font-sans: "Inter", "ui-sans-serif", "system-ui", "sans-serif";
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -71,7 +70,7 @@
     --foreground-rgb: 255, 255, 255;
     --background-start-rgb: 0, 0, 0;
     --background-end-rgb: 0, 0, 0;
-    --font-sans: 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif';
+    --font-sans: "Inter", "ui-sans-serif", "system-ui", "sans-serif";
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
@@ -104,6 +103,8 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 }

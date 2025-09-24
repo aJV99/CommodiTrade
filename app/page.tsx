@@ -1,22 +1,24 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { StatsGrid } from '@/components/dashboard/stats-grid';
-import { RecentTrades } from '@/components/dashboard/recent-trades';
-import { CommodityPrices } from '@/components/dashboard/commodity-prices';
-import { PendingShipments } from '@/components/dashboard/pending-shipments';
-import { useDashboardStatistics } from '@/lib/hooks/use-dashboard';
-import { useTrades } from '@/lib/hooks/use-trades';
-import { useCommodities } from '@/lib/hooks/use-commodities';
-import { useShipments } from '@/lib/hooks/use-shipments';
+import React from "react";
+import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { RecentTrades } from "@/components/dashboard/recent-trades";
+import { CommodityPrices } from "@/components/dashboard/commodity-prices";
+import { PendingShipments } from "@/components/dashboard/pending-shipments";
+import { useDashboardStatistics } from "@/lib/hooks/use-dashboard";
+import { useTrades } from "@/lib/hooks/use-trades";
+import { useCommodities } from "@/lib/hooks/use-commodities";
+import { useShipments } from "@/lib/hooks/use-shipments";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStatistics();
   const { data: trades, isLoading: tradesLoading } = useTrades({ limit: 5 });
-  const { data: commodities, isLoading: commoditiesLoading } = useCommodities({ limit: 8 });
-  const { data: shipments, isLoading: shipmentsLoading } = useShipments({ 
-    status: 'IN_TRANSIT',
-    limit: 5 
+  const { data: commodities, isLoading: commoditiesLoading } = useCommodities({
+    limit: 8,
+  });
+  const { data: shipments, isLoading: shipmentsLoading } = useShipments({
+    status: "IN_TRANSIT",
+    limit: 5,
   });
 
   if (statsLoading || tradesLoading || commoditiesLoading || shipmentsLoading) {
@@ -46,7 +48,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {shipments && <PendingShipments shipments={shipments} />}
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-card-foreground">Quick Actions</h3>
+          <h3 className="mb-4 text-lg font-semibold text-card-foreground">
+            Quick Actions
+          </h3>
           <div className="grid grid-cols-2 gap-4">
             <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
               <div className="font-medium text-blue-900">New Trade</div>

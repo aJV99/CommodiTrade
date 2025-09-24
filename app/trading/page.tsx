@@ -1,73 +1,92 @@
-'use client';
+"use client";
 
-import React, { Suspense, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
-import { TradeModal } from '@/components/modals/trade-modal';
-import { useTrades } from '@/lib/hooks/use-trades';
-import { TradeStatus, TradeType } from '@prisma/client';
-import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useCommodities } from '@/lib/hooks/use-commodities';
+import React, { Suspense, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search } from "lucide-react";
+import { TradeModal } from "@/components/modals/trade-modal";
+import { useTrades } from "@/lib/hooks/use-trades";
+import { TradeStatus, TradeType } from "@prisma/client";
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useCommodities } from "@/lib/hooks/use-commodities";
 
 export default function TradingPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading trades…</div>}>
+    <Suspense
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">Loading trades…</div>
+      }
+    >
       <TradingPageContent />
     </Suspense>
   );
 }
 
 function TradingPageContent() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const searchParams = useSearchParams();
   const router = useRouter();
-  const commodityIdFilter = searchParams.get('commodityId') ?? undefined;
+  const commodityIdFilter = searchParams.get("commodityId") ?? undefined;
   const { data: commodities = [] } = useCommodities();
 
-  const { data: trades = [], isLoading, refetch } = useTrades({
-    status: statusFilter !== 'all' ? statusFilter as TradeStatus : undefined,
-    type: typeFilter !== 'all' ? typeFilter as TradeType : undefined,
+  const {
+    data: trades = [],
+    isLoading,
+    refetch,
+  } = useTrades({
+    status: statusFilter !== "all" ? (statusFilter as TradeStatus) : undefined,
+    type: typeFilter !== "all" ? (typeFilter as TradeType) : undefined,
     commodityId: commodityIdFilter,
   });
 
-  const filteredTrades = trades.filter(trade => {
+  const filteredTrades = trades.filter((trade) => {
     if (!searchTerm) return true;
     return (
       trade.commodity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trade.counterparty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trade.counterparty.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       trade.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
   const commodityFilterLabel = useMemo(() => {
     if (!commodityIdFilter) return undefined;
-    return commodities.find((commodity) => commodity.id === commodityIdFilter)?.name;
+    return commodities.find((commodity) => commodity.id === commodityIdFilter)
+      ?.name;
   }, [commodities, commodityIdFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'OPEN':
-        return 'bg-blue-100 text-blue-800';
-      case 'EXECUTED':
-        return 'bg-green-100 text-green-800';
-      case 'SETTLED':
-        return 'bg-gray-100 text-gray-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+      case "OPEN":
+        return "bg-blue-100 text-blue-800";
+      case "EXECUTED":
+        return "bg-green-100 text-green-800";
+      case "SETTLED":
+        return "bg-gray-100 text-gray-800";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getTypeColor = (type: string) => {
-    return type === 'BUY' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
+    return type === "BUY"
+      ? "text-green-600 bg-green-50"
+      : "text-red-600 bg-red-50";
   };
 
   if (isLoading) {
@@ -83,7 +102,9 @@ function TradingPageContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Trading</h1>
-          <p className="text-slate-600 mt-2">Manage your commodity trades and orders</p>
+          <p className="text-slate-600 mt-2">
+            Manage your commodity trades and orders
+          </p>
         </div>
         <TradeModal onTradeCreated={refetch} />
       </div>
@@ -91,16 +112,16 @@ function TradingPageContent() {
       {commodityIdFilter && (
         <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
           <span>
-            Commodity filter:{' '}
+            Commodity filter:{" "}
             <span className="font-semibold">
-              {commodityFilterLabel ?? 'Selected commodity'}
+              {commodityFilterLabel ?? "Selected commodity"}
             </span>
           </span>
           <Button
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={() => router.push('/trading')}
+            onClick={() => router.push("/trading")}
           >
             Clear
           </Button>
@@ -151,34 +172,71 @@ function TradingPageContent() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Trade ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Commodity</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Quantity</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Price</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Total Value</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Counterparty</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Trade Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Actions</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Trade ID
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Commodity
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Type
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Quantity
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Price
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Total Value
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Counterparty
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Trade Date
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTrades.map((trade) => (
-                  <tr key={trade.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4 font-medium text-slate-900">{trade.id}</td>
-                    <td className="py-3 px-4 text-slate-700">{trade.commodity.name}</td>
-                    <td className="py-3 px-4">
-                      <Badge className={getTypeColor(trade.type)}>{trade.type}</Badge>
+                  <tr
+                    key={trade.id}
+                    className="border-b border-slate-100 hover:bg-slate-50"
+                  >
+                    <td className="py-3 px-4 font-medium text-slate-900">
+                      {trade.id}
                     </td>
-                    <td className="py-3 px-4 text-slate-700">{trade.quantity.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-slate-700">${trade.price.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-slate-700">
+                      {trade.commodity.name}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge className={getTypeColor(trade.type)}>
+                        {trade.type}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-slate-700">
+                      {trade.quantity.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-slate-700">
+                      ${trade.price.toFixed(2)}
+                    </td>
                     <td className="py-3 px-4 font-medium text-slate-900">
                       ${trade.totalValue.toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-slate-700">{trade.counterparty.name}</td>
+                    <td className="py-3 px-4 text-slate-700">
+                      {trade.counterparty.name}
+                    </td>
                     <td className="py-3 px-4">
-                      <Badge className={getStatusColor(trade.status)}>{trade.status}</Badge>
+                      <Badge className={getStatusColor(trade.status)}>
+                        {trade.status}
+                      </Badge>
                     </td>
                     <td className="py-3 px-4 text-slate-700">
                       {new Date(trade.tradeDate).toLocaleDateString()}

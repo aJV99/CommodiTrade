@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -24,23 +24,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Plus } from 'lucide-react';
-import { useCreateInventoryItem } from '@/lib/hooks/use-inventory';
-import { useCommodities } from '@/lib/hooks/use-commodities';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/form";
+import { Plus } from "lucide-react";
+import { useCreateInventoryItem } from "@/lib/hooks/use-inventory";
+import { useCommodities } from "@/lib/hooks/use-commodities";
+import { useToast } from "@/hooks/use-toast";
 import {
   inventoryCreateSchema,
   InventoryFormValues,
-} from '@/lib/validation/inventory';
+} from "@/lib/validation/inventory";
 import {
   INVENTORY_QUALITIES,
   INVENTORY_UNITS,
   isInventoryUnit,
   InventoryUnit,
-} from '@/lib/constants/inventory';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+} from "@/lib/constants/inventory";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 interface InventoryModalProps {
   onInventoryCreated?: () => void;
@@ -58,11 +58,11 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
   const form = useForm<InventoryFormValues>({
     resolver: zodResolver(inventoryCreateSchema),
     defaultValues: {
-      commodityId: '',
+      commodityId: "",
       quantity: 0,
       unit: DEFAULT_UNIT,
-      warehouse: '',
-      location: '',
+      warehouse: "",
+      location: "",
       quality: DEFAULT_QUALITY,
       costBasis: 0,
       marketValue: 0,
@@ -84,15 +84,15 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
   };
 
   const handleCommodityChange = (commodityId: string) => {
-    form.setValue('commodityId', commodityId);
+    form.setValue("commodityId", commodityId);
     const selectedCommodity = commodities.find((c) => c.id === commodityId);
     if (selectedCommodity) {
       if (selectedCommodity.unit && isInventoryUnit(selectedCommodity.unit)) {
-        form.setValue('unit', selectedCommodity.unit);
+        form.setValue("unit", selectedCommodity.unit);
       }
-      if (typeof selectedCommodity.currentPrice === 'number') {
-        form.setValue('marketValue', selectedCommodity.currentPrice);
-        form.setValue('costBasis', selectedCommodity.currentPrice);
+      if (typeof selectedCommodity.currentPrice === "number") {
+        form.setValue("marketValue", selectedCommodity.currentPrice);
+        form.setValue("costBasis", selectedCommodity.currentPrice);
       }
     }
   };
@@ -101,8 +101,8 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
     try {
       await createInventoryMutation.mutateAsync(values);
       toast({
-        title: 'Inventory updated',
-        description: 'Inventory lot added successfully.',
+        title: "Inventory updated",
+        description: "Inventory lot added successfully.",
       });
       onInventoryCreated?.();
       handleClose();
@@ -110,12 +110,12 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to create inventory lot. Please try again.';
+          : "Failed to create inventory lot. Please try again.";
 
       toast({
-        title: 'Unable to add stock',
+        title: "Unable to add stock",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -183,7 +183,7 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
                         {...field}
                         onChange={(event) =>
                           field.onChange(
-                            event.target.value === ''
+                            event.target.value === ""
                               ? undefined
                               : Number(event.target.value),
                           )
@@ -203,10 +203,7 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select unit" />
@@ -230,10 +227,7 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Quality</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select quality" />
@@ -297,7 +291,7 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
                         {...field}
                         onChange={(event) =>
                           field.onChange(
-                            event.target.value === ''
+                            event.target.value === ""
                               ? undefined
                               : Number(event.target.value),
                           )
@@ -322,7 +316,7 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
                         {...field}
                         onChange={(event) =>
                           field.onChange(
-                            event.target.value === ''
+                            event.target.value === ""
                               ? undefined
                               : Number(event.target.value),
                           )
@@ -339,8 +333,11 @@ export function InventoryModal({ onInventoryCreated }: InventoryModalProps) {
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createInventoryMutation.isPending}>
-                {createInventoryMutation.isPending ? 'Adding…' : 'Add Stock'}
+              <Button
+                type="submit"
+                disabled={createInventoryMutation.isPending}
+              >
+                {createInventoryMutation.isPending ? "Adding…" : "Add Stock"}
               </Button>
             </div>
           </form>

@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus } from 'lucide-react';
-import { ContractType } from '@prisma/client';
-import { useCreateContract } from '@/lib/hooks/use-contracts';
-import { useCommodities } from '@/lib/hooks/use-commodities';
-import { useCounterparties } from '@/lib/hooks/use-counterparties';
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus } from "lucide-react";
+import { ContractType } from "@prisma/client";
+import { useCreateContract } from "@/lib/hooks/use-contracts";
+import { useCommodities } from "@/lib/hooks/use-commodities";
+import { useCounterparties } from "@/lib/hooks/use-counterparties";
 
 interface ContractModalProps {
   onContractCreated?: () => void;
@@ -45,7 +45,7 @@ type ContractFormState = {
 const formatDateInput = (date: Date) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
 
-  return localDate.toISOString().split('T')[0];
+  return localDate.toISOString().split("T")[0];
 };
 
 const createDefaultFormState = (): ContractFormState => {
@@ -54,21 +54,26 @@ const createDefaultFormState = (): ContractFormState => {
   defaultEnd.setMonth(defaultEnd.getMonth() + 1);
 
   return {
-    commodityId: '',
-    counterpartyId: '',
+    commodityId: "",
+    counterpartyId: "",
     type: ContractType.PURCHASE,
-    quantity: '',
-    price: '',
+    quantity: "",
+    price: "",
     startDate: formatDateInput(today),
     endDate: formatDateInput(defaultEnd),
-    deliveryTerms: '',
-    paymentTerms: '',
+    deliveryTerms: "",
+    paymentTerms: "",
   };
 };
 
-export function ContractModal({ onContractCreated, trigger }: ContractModalProps) {
+export function ContractModal({
+  onContractCreated,
+  trigger,
+}: ContractModalProps) {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState<ContractFormState>(() => createDefaultFormState());
+  const [formData, setFormData] = useState<ContractFormState>(() =>
+    createDefaultFormState(),
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data: commoditiesData = [] } = useCommodities();
@@ -102,47 +107,47 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
     const endDate = new Date(formData.endDate);
 
     if (!formData.commodityId) {
-      setErrorMessage('Please select a commodity.');
+      setErrorMessage("Please select a commodity.");
       return;
     }
 
     if (!formData.counterpartyId) {
-      setErrorMessage('Please select a counterparty.');
+      setErrorMessage("Please select a counterparty.");
       return;
     }
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      setErrorMessage('Quantity must be a positive number.');
+      setErrorMessage("Quantity must be a positive number.");
       return;
     }
 
     if (!Number.isFinite(price) || price <= 0) {
-      setErrorMessage('Price must be a positive number.');
+      setErrorMessage("Price must be a positive number.");
       return;
     }
 
     if (!(formData.startDate && !Number.isNaN(startDate.getTime()))) {
-      setErrorMessage('Please provide a valid start date.');
+      setErrorMessage("Please provide a valid start date.");
       return;
     }
 
     if (!(formData.endDate && !Number.isNaN(endDate.getTime()))) {
-      setErrorMessage('Please provide a valid end date.');
+      setErrorMessage("Please provide a valid end date.");
       return;
     }
 
     if (endDate <= startDate) {
-      setErrorMessage('End date must be after the start date.');
+      setErrorMessage("End date must be after the start date.");
       return;
     }
 
     if (!formData.deliveryTerms.trim()) {
-      setErrorMessage('Delivery terms are required.');
+      setErrorMessage("Delivery terms are required.");
       return;
     }
 
     if (!formData.paymentTerms.trim()) {
-      setErrorMessage('Payment terms are required.');
+      setErrorMessage("Payment terms are required.");
       return;
     }
 
@@ -163,7 +168,10 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
       resetForm();
       onContractCreated?.();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create contract. Please try again.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to create contract. Please try again.";
       setErrorMessage(message);
     }
   };
@@ -176,12 +184,16 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
   };
 
   const handleCommodityChange = (commodityId: string) => {
-    const selectedCommodity = commodities.find((commodity) => commodity.id === commodityId);
+    const selectedCommodity = commodities.find(
+      (commodity) => commodity.id === commodityId,
+    );
 
     setFormData((prev) => ({
       ...prev,
       commodityId,
-      price: selectedCommodity?.currentPrice ? selectedCommodity.currentPrice.toString() : prev.price,
+      price: selectedCommodity?.currentPrice
+        ? selectedCommodity.currentPrice.toString()
+        : prev.price,
     }));
   };
 
@@ -215,7 +227,10 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="commodity">Commodity</Label>
-              <Select value={formData.commodityId} onValueChange={handleCommodityChange}>
+              <Select
+                value={formData.commodityId}
+                onValueChange={handleCommodityChange}
+              >
                 <SelectTrigger id="commodity">
                   <SelectValue placeholder="Select commodity" />
                 </SelectTrigger>
@@ -223,7 +238,9 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
                   {commodities.map((commodity) => (
                     <SelectItem key={commodity.id} value={commodity.id}>
                       {commodity.name}
-                      {commodity.currentPrice !== undefined ? ` ($${commodity.currentPrice.toFixed(2)})` : ''}
+                      {commodity.currentPrice !== undefined
+                        ? ` ($${commodity.currentPrice.toFixed(2)})`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -247,7 +264,7 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
                   {counterparties.map((counterparty) => (
                     <SelectItem key={counterparty.id} value={counterparty.id}>
                       {counterparty.name}
-                      {counterparty.country ? ` (${counterparty.country})` : ''}
+                      {counterparty.country ? ` (${counterparty.country})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -382,11 +399,17 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
           ) : null}
 
           <div className="flex justify-end space-x-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={createContractMutation.isPending}>
-              {createContractMutation.isPending ? 'Creating...' : 'Create Contract'}
+              {createContractMutation.isPending
+                ? "Creating..."
+                : "Create Contract"}
             </Button>
           </div>
         </form>
@@ -394,4 +417,3 @@ export function ContractModal({ onContractCreated, trigger }: ContractModalProps
     </Dialog>
   );
 }
-

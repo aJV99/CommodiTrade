@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -16,31 +16,31 @@ import {
   FormLabel,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useUpdateInventoryItem } from '@/lib/hooks/use-inventory';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useUpdateInventoryItem } from "@/lib/hooks/use-inventory";
+import { useToast } from "@/hooks/use-toast";
 import {
   InventoryUpdateValues,
   inventoryUpdateSchema,
-} from '@/lib/validation/inventory';
+} from "@/lib/validation/inventory";
 import {
   INVENTORY_QUALITIES,
   INVENTORY_UNITS,
   isInventoryQuality,
   isInventoryUnit,
-} from '@/lib/constants/inventory';
-import type { InventoryItem, Commodity } from '@prisma/client';
+} from "@/lib/constants/inventory";
+import type { InventoryItem, Commodity } from "@prisma/client";
 
 interface EditInventoryModalProps {
   inventory: InventoryItem & { commodity: Commodity };
@@ -99,8 +99,8 @@ export function EditInventoryModal({
       });
 
       toast({
-        title: 'Inventory updated',
-        description: 'Lot details have been updated.',
+        title: "Inventory updated",
+        description: "Lot details have been updated.",
       });
       onUpdated?.();
       handleClose();
@@ -108,12 +108,12 @@ export function EditInventoryModal({
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to update inventory lot. Please try again.';
+          : "Failed to update inventory lot. Please try again.";
 
       toast({
-        title: 'Unable to update lot',
+        title: "Unable to update lot",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -152,10 +152,7 @@ export function EditInventoryModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select unit" />
@@ -211,10 +208,7 @@ export function EditInventoryModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Quality</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select quality" />
@@ -245,9 +239,11 @@ export function EditInventoryModal({
                         min={0}
                         {...field}
                         onChange={(event) =>
-                          field.onChange(event.target.value === ''
-                            ? undefined
-                            : Number(event.target.value))
+                          field.onChange(
+                            event.target.value === ""
+                              ? undefined
+                              : Number(event.target.value),
+                          )
                         }
                       />
                     </FormControl>
@@ -270,9 +266,11 @@ export function EditInventoryModal({
                       min={0}
                       {...field}
                       onChange={(event) =>
-                        field.onChange(event.target.value === ''
-                          ? undefined
-                          : Number(event.target.value))
+                        field.onChange(
+                          event.target.value === ""
+                            ? undefined
+                            : Number(event.target.value),
+                        )
                       }
                     />
                   </FormControl>
@@ -285,8 +283,11 @@ export function EditInventoryModal({
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateInventoryMutation.isPending}>
-                {updateInventoryMutation.isPending ? 'Saving…' : 'Save changes'}
+              <Button
+                type="submit"
+                disabled={updateInventoryMutation.isPending}
+              >
+                {updateInventoryMutation.isPending ? "Saving…" : "Save changes"}
               </Button>
             </div>
           </form>

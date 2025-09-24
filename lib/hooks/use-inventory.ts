@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getInventoryItems,
   createInventoryItem,
@@ -8,8 +8,8 @@ import {
   getInventoryValuation,
   getLowStockAlerts,
   getInventoryMovementsForItem,
-} from '@/lib/database/inventory';
-import type { InventoryMovementInput } from '@/lib/database/inventory';
+} from "@/lib/database/inventory";
+import type { InventoryMovementInput } from "@/lib/database/inventory";
 
 export function useInventory(
   filters?: {
@@ -22,10 +22,10 @@ export function useInventory(
   },
   options?: {
     enabled?: boolean;
-  }
+  },
 ) {
   return useQuery({
-    queryKey: ['inventory', filters],
+    queryKey: ["inventory", filters],
     queryFn: () => getInventoryItems(filters),
     enabled: options?.enabled ?? true,
   });
@@ -37,7 +37,7 @@ export function useInventoryValuation(filters?: {
   location?: string;
 }) {
   return useQuery({
-    queryKey: ['inventory-valuation', filters],
+    queryKey: ["inventory-valuation", filters],
     queryFn: () => getInventoryValuation(filters),
   });
 }
@@ -47,7 +47,7 @@ export function useInventoryMovements(
   options?: { limit?: number },
 ) {
   return useQuery({
-    queryKey: ['inventory-movements', inventoryId, options?.limit],
+    queryKey: ["inventory-movements", inventoryId, options?.limit],
     queryFn: () =>
       getInventoryMovementsForItem(inventoryId as string, {
         limit: options?.limit,
@@ -58,47 +58,48 @@ export function useInventoryMovements(
 
 export function useLowStockAlerts(threshold: number = 100) {
   return useQuery({
-    queryKey: ['low-stock-alerts', threshold],
+    queryKey: ["low-stock-alerts", threshold],
     queryFn: () => getLowStockAlerts(threshold),
   });
 }
 
 export function useCreateInventoryItem() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createInventoryItem,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-valuation'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
-      queryClient.invalidateQueries({ queryKey: ['low-stock-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-valuation"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["low-stock-alerts"] });
     },
   });
 }
 
 export function useUpdateInventoryItem() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateInventoryItem(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateInventoryItem(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-valuation'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-valuation"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
     },
   });
 }
 
 export function useDeleteInventoryItem() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: deleteInventoryItem,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-valuation'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-valuation"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
     },
   });
 }
@@ -110,10 +111,10 @@ export function useProcessInventoryMovement() {
     mutationFn: (movement: InventoryMovementInput) =>
       processInventoryMovement(movement),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-valuation'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-valuation"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-movements"] });
     },
   });
 }

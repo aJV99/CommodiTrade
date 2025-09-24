@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -16,28 +16,28 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useProcessInventoryMovement } from '@/lib/hooks/use-inventory';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useProcessInventoryMovement } from "@/lib/hooks/use-inventory";
+import { useToast } from "@/hooks/use-toast";
 import {
   InventoryMovementValues,
   inventoryMovementSchema,
   inventoryMovementReferenceTypes,
   inventoryMovementTypes,
-} from '@/lib/validation/inventory';
-import type { InventoryItem, Commodity } from '@prisma/client';
+} from "@/lib/validation/inventory";
+import type { InventoryItem, Commodity } from "@prisma/client";
 
 interface InventoryMovementModalProps {
   inventory: InventoryItem & { commodity: Commodity };
@@ -57,11 +57,11 @@ export function InventoryMovementModal({
     resolver: zodResolver(inventoryMovementSchema),
     defaultValues: {
       inventoryId: inventory.id,
-      type: 'IN',
+      type: "IN",
       quantity: 0,
-      reason: '',
-      referenceType: 'MANUAL',
-      referenceId: '',
+      reason: "",
+      referenceType: "MANUAL",
+      referenceId: "",
       unitCost: inventory.costBasis,
       unitMarketValue: inventory.marketValue,
     },
@@ -71,24 +71,24 @@ export function InventoryMovementModal({
     if (open) {
       form.reset({
         inventoryId: inventory.id,
-        type: 'IN',
+        type: "IN",
         quantity: 0,
-        reason: '',
-        referenceType: 'MANUAL',
-        referenceId: '',
+        reason: "",
+        referenceType: "MANUAL",
+        referenceId: "",
         unitCost: inventory.costBasis,
         unitMarketValue: inventory.marketValue,
       });
     }
   }, [inventory, form, open]);
 
-  const movementType = form.watch('type');
+  const movementType = form.watch("type");
 
   const onSubmit = async (values: InventoryMovementValues) => {
     try {
       await processMovementMutation.mutateAsync(values);
       toast({
-        title: 'Movement posted',
+        title: "Movement posted",
         description: `${values.type} movement applied to ${inventory.commodity.name}.`,
       });
       onMovementProcessed?.();
@@ -97,18 +97,18 @@ export function InventoryMovementModal({
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to process movement. Please try again.';
+          : "Failed to process movement. Please try again.";
 
       toast({
-        title: 'Movement failed',
+        title: "Movement failed",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
 
   const quantityLabel =
-    movementType === 'ADJUSTMENT' ? 'New quantity on hand' : 'Quantity';
+    movementType === "ADJUSTMENT" ? "New quantity on hand" : "Quantity";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -117,7 +117,8 @@ export function InventoryMovementModal({
         <DialogHeader>
           <DialogTitle>Post inventory movement</DialogTitle>
           <DialogDescription>
-            Record receipts, draws, or adjustments to keep warehouse balances accurate.
+            Record receipts, draws, or adjustments to keep warehouse balances
+            accurate.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -165,7 +166,7 @@ export function InventoryMovementModal({
                         {...field}
                         onChange={(event) =>
                           field.onChange(
-                            event.target.value === ''
+                            event.target.value === ""
                               ? undefined
                               : Number(event.target.value),
                           )
@@ -210,14 +211,17 @@ export function InventoryMovementModal({
                 <FormItem>
                   <FormLabel>Reference ID (optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Link to trade, shipment, or ticket" {...field} />
+                    <Input
+                      placeholder="Link to trade, shipment, or ticket"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {(movementType === 'IN' || movementType === 'ADJUSTMENT') && (
+            {(movementType === "IN" || movementType === "ADJUSTMENT") && (
               <FormField
                 control={form.control}
                 name="unitCost"
@@ -232,7 +236,7 @@ export function InventoryMovementModal({
                         {...field}
                         onChange={(event) =>
                           field.onChange(
-                            event.target.value === ''
+                            event.target.value === ""
                               ? undefined
                               : Number(event.target.value),
                           )
@@ -259,7 +263,7 @@ export function InventoryMovementModal({
                       {...field}
                       onChange={(event) =>
                         field.onChange(
-                          event.target.value === ''
+                          event.target.value === ""
                             ? undefined
                             : Number(event.target.value),
                         )
@@ -278,7 +282,11 @@ export function InventoryMovementModal({
                 <FormItem>
                   <FormLabel>Reason</FormLabel>
                   <FormControl>
-                    <Textarea rows={3} placeholder="Explain why this movement is occurring" {...field} />
+                    <Textarea
+                      rows={3}
+                      placeholder="Explain why this movement is occurring"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -286,11 +294,20 @@ export function InventoryMovementModal({
             />
 
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={processMovementMutation.isPending}>
-                {processMovementMutation.isPending ? 'Posting…' : 'Post movement'}
+              <Button
+                type="submit"
+                disabled={processMovementMutation.isPending}
+              >
+                {processMovementMutation.isPending
+                  ? "Posting…"
+                  : "Post movement"}
               </Button>
             </div>
           </form>

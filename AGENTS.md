@@ -17,6 +17,7 @@ This file guides AI agents and developers working on **CommodiTrade**, a commodi
 - **Mocking**: In-memory mock layer for demos/fallbacks
 
 ### Key Packages
+
 - `@prisma/client`, `prisma`
 - `@supabase/supabase-js`
 - `@tanstack/react-query`
@@ -37,6 +38,7 @@ NODE_ENV="development"
 ```
 
 **Scripts** (typical):
+
 ```
   "scripts": {
     "dev": "next dev",
@@ -68,8 +70,8 @@ Use icons from lucide-react for logos.
 
 ---
 
-
 ## 4) Data Model (essentials)
+
 _Primary entities and relations (summarized):_
 
 - **Commodity** ↔ **Trade**, **InventoryItem**, **Contract**, **Shipment**
@@ -80,6 +82,7 @@ _Primary entities and relations (summarized):_
 - **Counterparty** ↔ credit fields, aggregates
 
 ### Core Enums (typical)
+
 - `TradeStatus = OPEN | EXECUTED | SETTLED | CANCELLED`
 - `TradeType = BUY | SELL`
 - `ShipmentStatus = PLANNED | IN_TRANSIT | DELIVERED | DELAYED | CANCELLED`
@@ -118,6 +121,7 @@ _All functions live under `lib/database/*.ts` and are **server-only**._
 - **Dashboard**: `getDashboardStatistics`, `getTradingPerformance`, `getCommodityExposure`, `getSystemHealthMetrics`
 
 **Conventions**
+
 - Prefix with `"use server"`; validate input with Zod; wrap multi-step flows in `prisma.$transaction`.
 - Narrow selects: return only fields the UI needs.
 - Use explicit `ORDER BY`, `LIMIT`, pagination cursors where relevant.
@@ -130,6 +134,7 @@ _All functions live under `lib/database/*.ts` and are **server-only**._
 Hooks in `lib/hooks/*` wrap server functions.
 
 **Patterns**
+
 - Queries: stable keys, e.g., `["trades", filters]`, `["inventory", { commodityId }]`
 - Mutations: optimistic updates where safe; otherwise invalidate narrow scopes.
 - Invalidation matrix (examples):
@@ -167,6 +172,7 @@ Hooks in `lib/hooks/*` wrap server functions.
 **E2E** (optional): Playwright for critical flows (trade execute, inventory adjust, shipment status).
 
 **Commands**
+
 ```
 npm test
 npm run lint
@@ -202,6 +208,7 @@ PRs must pass: **lint**, **type-check**, **build**, and **tests**. For DB change
 ## 13) Domain Checklists (quick cues for agents)
 
 ### Trades
+
 - [ ] Validate commodity + counterparty exist
 - [ ] Enforce credit usage ≤ limit (txn)
 - [ ] BUY: create/merge inventory lot
@@ -209,22 +216,26 @@ PRs must pass: **lint**, **type-check**, **build**, and **tests**. For DB change
 - [ ] Idempotent execute/cancel
 
 ### Inventory
+
 - [ ] Movements never produce negative qty
 - [ ] Merge by (commodity, warehouse, quality)
 - [ ] Recompute avg cost where required
 - [ ] Update marketValue and P&L on price change
 
 ### Contracts
+
 - [ ] remainingQty = totalQty - executedQty (≥ 0)
 - [ ] Execution adjusts inventory by type
 - [ ] End date ≥ start date
 
 ### Shipments
+
 - [ ] Unique trackingNumber
 - [ ] Optional link to Trade; quantity ≤ trade (if linked)
 - [ ] Status transitions valid; delayed detection with ETA
 
 ### Counterparties
+
 - [ ] Maintain creditUsage & performance metrics
 - [ ] Expose helpers: getCreditRiskCounterparties, performance KPIs
 

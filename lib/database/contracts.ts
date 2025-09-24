@@ -1,6 +1,6 @@
 "use server";
-import { prisma } from '@/lib/prisma';
-import { ContractType, ContractStatus } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
+import { ContractType, ContractStatus } from "@prisma/client";
 
 export interface CreateContractData {
   commodityId: string;
@@ -38,20 +38,20 @@ export async function createContract(data: CreateContractData) {
   try {
     // Validate commodity exists
     const commodity = await prisma.commodity.findUnique({
-      where: { id: data.commodityId }
+      where: { id: data.commodityId },
     });
-    
+
     if (!commodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     // Validate counterparty exists
     const counterparty = await prisma.counterparty.findUnique({
-      where: { id: data.counterpartyId }
+      where: { id: data.counterpartyId },
     });
-    
+
     if (!counterparty) {
-      throw new Error('Counterparty not found');
+      throw new Error("Counterparty not found");
     }
 
     // Calculate total value
@@ -59,7 +59,7 @@ export async function createContract(data: CreateContractData) {
 
     // Validate contract dates
     if (data.endDate <= data.startDate) {
-      throw new Error('End date must be after start date');
+      throw new Error("End date must be after start date");
     }
 
     const contract = await prisma.contract.create({
@@ -72,12 +72,12 @@ export async function createContract(data: CreateContractData) {
       include: {
         commodity: true,
         counterparty: true,
-      }
+      },
     });
 
     return contract;
   } catch (error) {
-    console.error('Error creating contract:', error);
+    console.error("Error creating contract:", error);
     throw error;
   }
 }
@@ -102,7 +102,7 @@ export async function getContracts(filters?: {
     if (filters?.type) where.type = filters.type;
     if (filters?.commodityId) where.commodityId = filters.commodityId;
     if (filters?.counterpartyId) where.counterpartyId = filters.counterpartyId;
-    
+
     if (filters?.startDateFrom || filters?.startDateTo) {
       where.startDate = {};
       if (filters.startDateFrom) where.startDate.gte = filters.startDateFrom;
@@ -121,14 +121,14 @@ export async function getContracts(filters?: {
         commodity: true,
         counterparty: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: filters?.limit || 100,
       skip: filters?.offset || 0,
     });
 
     return contracts;
   } catch (error) {
-    console.error('Error fetching contracts:', error);
+    console.error("Error fetching contracts:", error);
     throw error;
   }
 }
@@ -141,16 +141,16 @@ export async function getContractById(id: string) {
       include: {
         commodity: true,
         counterparty: true,
-      }
+      },
     });
 
     if (!contract) {
-      throw new Error('Contract not found');
+      throw new Error("Contract not found");
     }
 
     return contract;
   } catch (error) {
-    console.error('Error fetching contract:', error);
+    console.error("Error fetching contract:", error);
     throw error;
   }
 }
@@ -159,11 +159,11 @@ export async function getContractById(id: string) {
 export async function updateContract(id: string, data: UpdateContractData) {
   try {
     const existingContract = await prisma.contract.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingContract) {
-      throw new Error('Contract not found');
+      throw new Error("Contract not found");
     }
 
     // Calculate new total value if quantity or price changed
@@ -174,7 +174,7 @@ export async function updateContract(id: string, data: UpdateContractData) {
       const newQuantity = data.quantity ?? existingContract.quantity;
       const newPrice = data.price ?? existingContract.price;
       totalValue = newQuantity * newPrice;
-      
+
       // Adjust remaining quantity if total quantity changed
       if (data.quantity !== undefined) {
         const quantityDifference = data.quantity - existingContract.quantity;
@@ -189,7 +189,7 @@ export async function updateContract(id: string, data: UpdateContractData) {
 
     // Validate dates if provided
     if (data.startDate && data.endDate && data.endDate <= data.startDate) {
-      throw new Error('End date must be after start date');
+      throw new Error("End date must be after start date");
     }
 
     const updatedContract = await prisma.contract.update({
@@ -203,12 +203,12 @@ export async function updateContract(id: string, data: UpdateContractData) {
       include: {
         commodity: true,
         counterparty: true,
-      }
+      },
     });
 
     return updatedContract;
   } catch (error) {
-    console.error('Error updating contract:', error);
+    console.error("Error updating contract:", error);
     throw error;
   }
 }
@@ -221,26 +221,27 @@ export async function executeContract(execution: ContractExecution) {
       include: {
         commodity: true,
         counterparty: true,
-      }
+      },
     });
 
     if (!contract) {
-      throw new Error('Contract not found');
+      throw new Error("Contract not found");
     }
 
     if (contract.status !== ContractStatus.ACTIVE) {
-      throw new Error('Only active contracts can be executed');
+      throw new Error("Only active contracts can be executed");
     }
 
     if (execution.quantity > contract.remaining) {
-      throw new Error('Execution quantity exceeds remaining contract quantity');
+      throw new Error("Execution quantity exceeds remaining contract quantity");
     }
 
     const result = await prisma.$transaction(async (tx) => {
       // Update contract execution
       const newExecuted = contract.executed + execution.quantity;
       const newRemaining = contract.remaining - execution.quantity;
-      const newStatus = newRemaining === 0 ? ContractStatus.COMPLETED : ContractStatus.ACTIVE;
+      const newStatus =
+        newRemaining === 0 ? ContractStatus.COMPLETED : ContractStatus.ACTIVE;
 
       const updatedContract = await tx.contract.update({
         where: { id: execution.contractId },
@@ -253,7 +254,7 @@ export async function executeContract(execution: ContractExecution) {
         include: {
           commodity: true,
           counterparty: true,
-        }
+        },
       });
 
       // Create corresponding trade if tradeId is provided
@@ -261,9 +262,9 @@ export async function executeContract(execution: ContractExecution) {
         await tx.trade.update({
           where: { id: execution.tradeId },
           data: {
-            status: 'EXECUTED',
+            status: "EXECUTED",
             updatedAt: new Date(),
-          }
+          },
         });
       }
 
@@ -273,14 +274,16 @@ export async function executeContract(execution: ContractExecution) {
         const existingInventory = await tx.inventoryItem.findFirst({
           where: {
             commodityId: contract.commodityId,
-          }
+          },
         });
 
         if (existingInventory) {
           // Update existing inventory
           const newQuantity = existingInventory.quantity + execution.quantity;
-          const newCostBasis = ((existingInventory.quantity * existingInventory.costBasis) + 
-                               (execution.quantity * contract.price)) / newQuantity;
+          const newCostBasis =
+            (existingInventory.quantity * existingInventory.costBasis +
+              execution.quantity * contract.price) /
+            newQuantity;
 
           await tx.inventoryItem.update({
             where: { id: existingInventory.id },
@@ -288,7 +291,7 @@ export async function executeContract(execution: ContractExecution) {
               quantity: newQuantity,
               costBasis: newCostBasis,
               lastUpdated: new Date(),
-            }
+            },
           });
         } else {
           // Create new inventory item
@@ -297,12 +300,12 @@ export async function executeContract(execution: ContractExecution) {
               commodityId: contract.commodityId,
               quantity: execution.quantity,
               unit: contract.commodity.unit,
-              warehouse: 'Contract Delivery', // Default warehouse for contract deliveries
-              location: 'Main Location',
-              quality: 'Contract Grade',
+              warehouse: "Contract Delivery", // Default warehouse for contract deliveries
+              location: "Main Location",
+              quality: "Contract Grade",
               costBasis: contract.price,
               marketValue: contract.commodity.currentPrice,
-            }
+            },
           });
         }
       } else if (contract.type === ContractType.SALE) {
@@ -310,8 +313,8 @@ export async function executeContract(execution: ContractExecution) {
         const inventoryItem = await tx.inventoryItem.findFirst({
           where: {
             commodityId: contract.commodityId,
-            quantity: { gte: execution.quantity }
-          }
+            quantity: { gte: execution.quantity },
+          },
         });
 
         if (inventoryItem) {
@@ -320,10 +323,10 @@ export async function executeContract(execution: ContractExecution) {
             data: {
               quantity: inventoryItem.quantity - execution.quantity,
               lastUpdated: new Date(),
-            }
+            },
           });
         } else {
-          throw new Error('Insufficient inventory for contract execution');
+          throw new Error("Insufficient inventory for contract execution");
         }
       }
 
@@ -332,7 +335,7 @@ export async function executeContract(execution: ContractExecution) {
 
     return result;
   } catch (error) {
-    console.error('Error executing contract:', error);
+    console.error("Error executing contract:", error);
     throw error;
   }
 }
@@ -341,15 +344,15 @@ export async function executeContract(execution: ContractExecution) {
 export async function cancelContract(id: string, reason?: string) {
   try {
     const contract = await prisma.contract.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!contract) {
-      throw new Error('Contract not found');
+      throw new Error("Contract not found");
     }
 
     if (contract.status === ContractStatus.COMPLETED) {
-      throw new Error('Cannot cancel completed contract');
+      throw new Error("Cannot cancel completed contract");
     }
 
     const cancelledContract = await prisma.contract.update({
@@ -361,12 +364,12 @@ export async function cancelContract(id: string, reason?: string) {
       include: {
         commodity: true,
         counterparty: true,
-      }
+      },
     });
 
     return cancelledContract;
   } catch (error) {
-    console.error('Error cancelling contract:', error);
+    console.error("Error cancelling contract:", error);
     throw error;
   }
 }
@@ -383,20 +386,20 @@ export async function getExpiringContracts(daysAhead: number = 30) {
         endDate: {
           lte: futureDate,
           gte: new Date(),
-        }
+        },
       },
       include: {
         commodity: true,
         counterparty: true,
       },
       orderBy: {
-        endDate: 'asc'
-      }
+        endDate: "asc",
+      },
     });
 
     return expiringContracts;
   } catch (error) {
-    console.error('Error fetching expiring contracts:', error);
+    console.error("Error fetching expiring contracts:", error);
     throw error;
   }
 }
@@ -410,7 +413,7 @@ export async function getContractStatistics(filters?: {
 }) {
   try {
     const where: any = {};
-    
+
     if (filters?.commodityId) where.commodityId = filters.commodityId;
     if (filters?.counterpartyId) where.counterpartyId = filters.counterpartyId;
     if (filters?.dateFrom || filters?.dateTo) {
@@ -431,18 +434,24 @@ export async function getContractStatistics(filters?: {
       prisma.contract.count({ where }),
       prisma.contract.aggregate({
         where,
-        _sum: { totalValue: true }
+        _sum: { totalValue: true },
       }),
-      prisma.contract.count({ where: { ...where, status: ContractStatus.ACTIVE } }),
-      prisma.contract.count({ where: { ...where, status: ContractStatus.COMPLETED } }),
-      prisma.contract.count({ where: { ...where, status: ContractStatus.CANCELLED } }),
+      prisma.contract.count({
+        where: { ...where, status: ContractStatus.ACTIVE },
+      }),
+      prisma.contract.count({
+        where: { ...where, status: ContractStatus.COMPLETED },
+      }),
+      prisma.contract.count({
+        where: { ...where, status: ContractStatus.CANCELLED },
+      }),
       prisma.contract.aggregate({
         where,
-        _sum: { executed: true }
+        _sum: { executed: true },
       }),
       prisma.contract.aggregate({
         where,
-        _sum: { remaining: true }
+        _sum: { remaining: true },
       }),
     ]);
 
@@ -454,12 +463,16 @@ export async function getContractStatistics(filters?: {
       cancelledContracts,
       totalExecuted: totalExecuted._sum.executed || 0,
       totalRemaining: totalRemaining._sum.remaining || 0,
-      executionRate: totalExecuted._sum.executed && totalExecuted._sum.executed > 0 
-        ? ((totalExecuted._sum.executed / (totalExecuted._sum.executed + (totalRemaining._sum.remaining || 0))) * 100)
-        : 0,
+      executionRate:
+        totalExecuted._sum.executed && totalExecuted._sum.executed > 0
+          ? (totalExecuted._sum.executed /
+              (totalExecuted._sum.executed +
+                (totalRemaining._sum.remaining || 0))) *
+            100
+          : 0,
     };
   } catch (error) {
-    console.error('Error fetching contract statistics:', error);
+    console.error("Error fetching contract statistics:", error);
     throw error;
   }
 }

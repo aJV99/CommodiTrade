@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getContracts,
   getContractById,
@@ -7,9 +7,9 @@ import {
   executeContract,
   cancelContract,
   getExpiringContracts,
-  getContractStatistics
-} from '@/lib/database/contracts';
-import { ContractStatus, ContractType } from '@prisma/client';
+  getContractStatistics,
+} from "@/lib/database/contracts";
+import { ContractStatus, ContractType } from "@prisma/client";
 
 export function useContracts(filters?: {
   status?: ContractStatus;
@@ -24,17 +24,17 @@ export function useContracts(filters?: {
   offset?: number;
 }) {
   return useQuery({
-    queryKey: ['contracts', filters],
+    queryKey: ["contracts", filters],
     queryFn: () => getContracts(filters),
   });
 }
 
 export function useContract(id?: string) {
   return useQuery({
-    queryKey: ['contract', id],
+    queryKey: ["contract", id],
     queryFn: () => {
       if (!id) {
-        throw new Error('Contract ID is required');
+        throw new Error("Contract ID is required");
       }
 
       return getContractById(id);
@@ -45,7 +45,7 @@ export function useContract(id?: string) {
 
 export function useExpiringContracts(daysAhead: number = 30) {
   return useQuery({
-    queryKey: ['expiring-contracts', daysAhead],
+    queryKey: ["expiring-contracts", daysAhead],
     queryFn: () => getExpiringContracts(daysAhead),
   });
 }
@@ -57,7 +57,7 @@ export function useContractStatistics(filters?: {
   dateTo?: Date;
 }) {
   return useQuery({
-    queryKey: ['contract-statistics', filters],
+    queryKey: ["contract-statistics", filters],
     queryFn: () => getContractStatistics(filters),
   });
 }
@@ -68,10 +68,10 @@ export function useCreateContract() {
   return useMutation({
     mutationFn: createContract,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['contract-statistics'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
-      queryClient.invalidateQueries({ queryKey: ['counterparties'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
     },
   });
 }
@@ -80,12 +80,13 @@ export function useUpdateContract() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateContract(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateContract(id, data),
     onSuccess: (contract) => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['contract-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract-statistics"] });
       if (contract?.id) {
-        queryClient.invalidateQueries({ queryKey: ['contract', contract.id] });
+        queryClient.invalidateQueries({ queryKey: ["contract", contract.id] });
       }
     },
   });
@@ -97,11 +98,11 @@ export function useExecuteContract() {
   return useMutation({
     mutationFn: executeContract,
     onSuccess: (contract) => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
       if (contract?.id) {
-        queryClient.invalidateQueries({ queryKey: ['contract', contract.id] });
+        queryClient.invalidateQueries({ queryKey: ["contract", contract.id] });
       }
     },
   });
@@ -111,12 +112,13 @@ export function useCancelContract() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => cancelContract(id, reason),
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      cancelContract(id, reason),
     onSuccess: (contract) => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['contract-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract-statistics"] });
       if (contract?.id) {
-        queryClient.invalidateQueries({ queryKey: ['contract', contract.id] });
+        queryClient.invalidateQueries({ queryKey: ["contract", contract.id] });
       }
     },
   });

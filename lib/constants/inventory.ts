@@ -1,18 +1,18 @@
 export const INVENTORY_UNITS = [
-  'MT',
-  'BBL',
-  'MWh',
-  'LBS',
-  'KG',
-  'GAL',
+  "MT",
+  "BBL",
+  "MWh",
+  "LBS",
+  "KG",
+  "GAL",
 ] as const;
 
 export const INVENTORY_QUALITIES = [
-  'Grade A',
-  'Grade 1',
-  'Premium',
-  'Standard',
-  '99.9%',
+  "Grade A",
+  "Grade 1",
+  "Premium",
+  "Standard",
+  "99.9%",
 ] as const;
 
 export type InventoryUnit = (typeof INVENTORY_UNITS)[number];

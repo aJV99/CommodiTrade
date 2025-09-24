@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 import {
   Drawer,
   DrawerContent,
@@ -8,13 +8,13 @@ import {
   DrawerTitle,
   DrawerTrigger,
   DrawerDescription,
-} from '@/components/ui/drawer';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useInventoryMovements } from '@/lib/hooks/use-inventory';
-import type { InventoryItem, Commodity } from '@prisma/client';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/drawer";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInventoryMovements } from "@/lib/hooks/use-inventory";
+import type { InventoryItem, Commodity } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 interface InventoryHistoryDrawerProps {
   inventory: InventoryItem & { commodity: Commodity };
@@ -22,9 +22,9 @@ interface InventoryHistoryDrawerProps {
 }
 
 const movementBadgeClasses: Record<string, string> = {
-  IN: 'bg-green-100 text-green-700',
-  OUT: 'bg-amber-100 text-amber-700',
-  ADJUSTMENT: 'bg-blue-100 text-blue-700',
+  IN: "bg-green-100 text-green-700",
+  OUT: "bg-amber-100 text-amber-700",
+  ADJUSTMENT: "bg-blue-100 text-blue-700",
 };
 
 export function InventoryHistoryDrawer({
@@ -40,7 +40,8 @@ export function InventoryHistoryDrawer({
         <DrawerHeader>
           <DrawerTitle>Movement history</DrawerTitle>
           <DrawerDescription>
-            {inventory.commodity.name} — {inventory.warehouse} ({inventory.location})
+            {inventory.commodity.name} — {inventory.warehouse} (
+            {inventory.location})
           </DrawerDescription>
         </DrawerHeader>
         <ScrollArea className="px-6 pb-6 max-h-[60vh]">
@@ -55,16 +56,19 @@ export function InventoryHistoryDrawer({
 
             {!isLoading && (!data || data.length === 0) && (
               <div className="text-sm text-muted-foreground">
-                No movements recorded yet. Movements created here and via trades or shipments will appear instantly.
+                No movements recorded yet. Movements created here and via trades
+                or shipments will appear instantly.
               </div>
             )}
 
             {!isLoading && data && data.length > 0 && (
               <ul className="space-y-3">
                 {data.map((movement) => {
-                  const badgeClass = movementBadgeClasses[movement.type] ?? 'bg-slate-100 text-slate-700';
+                  const badgeClass =
+                    movementBadgeClasses[movement.type] ??
+                    "bg-slate-100 text-slate-700";
                   const delta = movement.quantityDelta;
-                  const formattedDelta = `${delta > 0 ? '+' : ''}${delta}`;
+                  const formattedDelta = `${delta > 0 ? "+" : ""}${delta}`;
 
                   return (
                     <li
@@ -72,7 +76,9 @@ export function InventoryHistoryDrawer({
                       className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
                     >
                       <div className="flex items-center justify-between">
-                        <Badge className={cn('uppercase tracking-wide', badgeClass)}>
+                        <Badge
+                          className={cn("uppercase tracking-wide", badgeClass)}
+                        >
                           {movement.type}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
@@ -81,35 +87,54 @@ export function InventoryHistoryDrawer({
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
                         <div>
-                          <span className="font-medium text-slate-900">Delta:</span>{' '}
-                          <span className={cn(delta >= 0 ? 'text-green-600' : 'text-red-600')}>
+                          <span className="font-medium text-slate-900">
+                            Delta:
+                          </span>{" "}
+                          <span
+                            className={cn(
+                              delta >= 0 ? "text-green-600" : "text-red-600",
+                            )}
+                          >
                             {formattedDelta} {inventory.unit}
                           </span>
                         </div>
                         <div>
-                          <span className="font-medium text-slate-900">On hand:</span>{' '}
-                          <span>{movement.resultingQuantity.toLocaleString()} {inventory.unit}</span>
+                          <span className="font-medium text-slate-900">
+                            On hand:
+                          </span>{" "}
+                          <span>
+                            {movement.resultingQuantity.toLocaleString()}{" "}
+                            {inventory.unit}
+                          </span>
                         </div>
                         {movement.unitCost !== null && (
                           <div>
-                            <span className="font-medium text-slate-900">Unit cost:</span>{' '}
+                            <span className="font-medium text-slate-900">
+                              Unit cost:
+                            </span>{" "}
                             <span>${movement.unitCost?.toFixed(2)}</span>
                           </div>
                         )}
                         {movement.unitMarketValue !== null && (
                           <div>
-                            <span className="font-medium text-slate-900">Market:</span>{' '}
+                            <span className="font-medium text-slate-900">
+                              Market:
+                            </span>{" "}
                             <span>${movement.unitMarketValue?.toFixed(2)}</span>
                           </div>
                         )}
                       </div>
                       {movement.reason && (
-                        <p className="mt-3 text-sm text-slate-700">{movement.reason}</p>
+                        <p className="mt-3 text-sm text-slate-700">
+                          {movement.reason}
+                        </p>
                       )}
                       {(movement.referenceType || movement.referenceId) && (
                         <div className="mt-2 text-xs text-muted-foreground">
-                          Reference: {movement.referenceType ?? 'N/A'}{' '}
-                          {movement.referenceId ? `— ${movement.referenceId}` : ''}
+                          Reference: {movement.referenceType ?? "N/A"}{" "}
+                          {movement.referenceId
+                            ? `— ${movement.referenceId}`
+                            : ""}
                         </div>
                       )}
                     </li>

@@ -1,6 +1,6 @@
 "use server";
-import { prisma } from '@/lib/prisma';
-import { CommodityType } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
+import { CommodityType } from "@prisma/client";
 
 export interface CreateCommodityData {
   name: string;
@@ -29,11 +29,11 @@ export async function createCommodity(data: CreateCommodityData) {
   try {
     // Check for duplicate name
     const existingCommodity = await prisma.commodity.findUnique({
-      where: { name: data.name }
+      where: { name: data.name },
     });
 
     if (existingCommodity) {
-      throw new Error('Commodity with this name already exists');
+      throw new Error("Commodity with this name already exists");
     }
 
     const commodity = await prisma.commodity.create({
@@ -41,12 +41,12 @@ export async function createCommodity(data: CreateCommodityData) {
         ...data,
         priceChange: 0,
         priceChangePercent: 0,
-      }
+      },
     });
 
     return commodity;
   } catch (error) {
-    console.error('Error creating commodity:', error);
+    console.error("Error creating commodity:", error);
     throw error;
   }
 }
@@ -56,7 +56,7 @@ export async function getCommodities(filters?: {
   type?: CommodityType;
   minPrice?: number;
   maxPrice?: number;
-  priceChangeDirection?: 'positive' | 'negative' | 'neutral';
+  priceChangeDirection?: "positive" | "negative" | "neutral";
   limit?: number;
   offset?: number;
 }) {
@@ -64,22 +64,24 @@ export async function getCommodities(filters?: {
     const where: any = {};
 
     if (filters?.type) where.type = filters.type;
-    
+
     if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
       where.currentPrice = {};
-      if (filters.minPrice !== undefined) where.currentPrice.gte = filters.minPrice;
-      if (filters.maxPrice !== undefined) where.currentPrice.lte = filters.maxPrice;
+      if (filters.minPrice !== undefined)
+        where.currentPrice.gte = filters.minPrice;
+      if (filters.maxPrice !== undefined)
+        where.currentPrice.lte = filters.maxPrice;
     }
 
     if (filters?.priceChangeDirection) {
       switch (filters.priceChangeDirection) {
-        case 'positive':
+        case "positive":
           where.priceChange = { gt: 0 };
           break;
-        case 'negative':
+        case "negative":
           where.priceChange = { lt: 0 };
           break;
-        case 'neutral':
+        case "neutral":
           where.priceChange = 0;
           break;
       }
@@ -94,7 +96,7 @@ export async function getCommodities(filters?: {
             quantity: true,
             totalValue: true,
             status: true,
-          }
+          },
         },
         inventory: {
           select: {
@@ -102,7 +104,7 @@ export async function getCommodities(filters?: {
             quantity: true,
             warehouse: true,
             location: true,
-          }
+          },
         },
         contracts: {
           select: {
@@ -110,7 +112,7 @@ export async function getCommodities(filters?: {
             quantity: true,
             totalValue: true,
             status: true,
-          }
+          },
         },
         _count: {
           select: {
@@ -118,17 +120,17 @@ export async function getCommodities(filters?: {
             inventory: true,
             contracts: true,
             shipments: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       take: filters?.limit || 100,
       skip: filters?.offset || 0,
     });
 
     return commodities;
   } catch (error) {
-    console.error('Error fetching commodities:', error);
+    console.error("Error fetching commodities:", error);
     throw error;
   }
 }
@@ -143,33 +145,33 @@ export async function getCommodityById(id: string) {
           include: {
             user: true,
           },
-          orderBy: { tradeDate: 'desc' }
+          orderBy: { tradeDate: "desc" },
         },
         inventory: {
-          orderBy: { lastUpdated: 'desc' }
+          orderBy: { lastUpdated: "desc" },
         },
         contracts: {
           include: {
             counterparty: true,
           },
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: "desc" },
         },
         shipments: {
           include: {
             trade: true,
           },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
+          orderBy: { createdAt: "desc" },
+        },
+      },
     });
 
     if (!commodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     return commodity;
   } catch (error) {
-    console.error('Error fetching commodity:', error);
+    console.error("Error fetching commodity:", error);
     throw error;
   }
 }
@@ -178,21 +180,21 @@ export async function getCommodityById(id: string) {
 export async function updateCommodity(id: string, data: UpdateCommodityData) {
   try {
     const existingCommodity = await prisma.commodity.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingCommodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     // Check for duplicate name if name is being updated
     if (data.name && data.name !== existingCommodity.name) {
       const duplicateCommodity = await prisma.commodity.findUnique({
-        where: { name: data.name }
+        where: { name: data.name },
       });
 
       if (duplicateCommodity) {
-        throw new Error('Commodity with this name already exists');
+        throw new Error("Commodity with this name already exists");
       }
     }
 
@@ -201,12 +203,12 @@ export async function updateCommodity(id: string, data: UpdateCommodityData) {
       data: {
         ...data,
         updatedAt: new Date(),
-      }
+      },
     });
 
     return updatedCommodity;
   } catch (error) {
-    console.error('Error updating commodity:', error);
+    console.error("Error updating commodity:", error);
     throw error;
   }
 }
@@ -215,17 +217,18 @@ export async function updateCommodity(id: string, data: UpdateCommodityData) {
 export async function updateCommodityPrice(priceUpdate: PriceUpdate) {
   try {
     const commodity = await prisma.commodity.findUnique({
-      where: { id: priceUpdate.commodityId }
+      where: { id: priceUpdate.commodityId },
     });
 
     if (!commodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     const oldPrice = commodity.currentPrice;
     const newPrice = priceUpdate.newPrice;
     const priceChange = newPrice - oldPrice;
-    const priceChangePercent = oldPrice > 0 ? (priceChange / oldPrice) * 100 : 0;
+    const priceChangePercent =
+      oldPrice > 0 ? (priceChange / oldPrice) * 100 : 0;
 
     const result = await prisma.$transaction(async (tx) => {
       // Update commodity price
@@ -236,7 +239,7 @@ export async function updateCommodityPrice(priceUpdate: PriceUpdate) {
           priceChange,
           priceChangePercent,
           updatedAt: new Date(),
-        }
+        },
       });
 
       // Update market values in inventory
@@ -245,7 +248,7 @@ export async function updateCommodityPrice(priceUpdate: PriceUpdate) {
         data: {
           marketValue: newPrice,
           lastUpdated: new Date(),
-        }
+        },
       });
 
       return updatedCommodity;
@@ -253,7 +256,7 @@ export async function updateCommodityPrice(priceUpdate: PriceUpdate) {
 
     return result;
   } catch (error) {
-    console.error('Error updating commodity price:', error);
+    console.error("Error updating commodity price:", error);
     throw error;
   }
 }
@@ -264,7 +267,7 @@ export async function batchUpdateCommodityPrices(priceUpdates: PriceUpdate[]) {
     const results = await prisma.$transaction(async (tx) => {
       const updatePromises = priceUpdates.map(async (update) => {
         const commodity = await tx.commodity.findUnique({
-          where: { id: update.commodityId }
+          where: { id: update.commodityId },
         });
 
         if (!commodity) {
@@ -274,7 +277,8 @@ export async function batchUpdateCommodityPrices(priceUpdates: PriceUpdate[]) {
         const oldPrice = commodity.currentPrice;
         const newPrice = update.newPrice;
         const priceChange = newPrice - oldPrice;
-        const priceChangePercent = oldPrice > 0 ? (priceChange / oldPrice) * 100 : 0;
+        const priceChangePercent =
+          oldPrice > 0 ? (priceChange / oldPrice) * 100 : 0;
 
         // Update commodity
         const updatedCommodity = await tx.commodity.update({
@@ -284,7 +288,7 @@ export async function batchUpdateCommodityPrices(priceUpdates: PriceUpdate[]) {
             priceChange,
             priceChangePercent,
             updatedAt: new Date(),
-          }
+          },
         });
 
         // Update inventory market values
@@ -293,7 +297,7 @@ export async function batchUpdateCommodityPrices(priceUpdates: PriceUpdate[]) {
           data: {
             marketValue: newPrice,
             lastUpdated: new Date(),
-          }
+          },
         });
 
         return updatedCommodity;
@@ -304,7 +308,7 @@ export async function batchUpdateCommodityPrices(priceUpdates: PriceUpdate[]) {
 
     return results;
   } catch (error) {
-    console.error('Error batch updating commodity prices:', error);
+    console.error("Error batch updating commodity prices:", error);
     throw error;
   }
 }
@@ -319,28 +323,32 @@ export async function deleteCommodity(id: string) {
         inventory: true,
         contracts: true,
         shipments: true,
-      }
+      },
     });
 
     if (!commodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     // Check if commodity has related records
-    if (commodity.trades.length > 0 || 
-        commodity.inventory.length > 0 || 
-        commodity.contracts.length > 0 || 
-        commodity.shipments.length > 0) {
-      throw new Error('Cannot delete commodity with existing trades, inventory, contracts, or shipments');
+    if (
+      commodity.trades.length > 0 ||
+      commodity.inventory.length > 0 ||
+      commodity.contracts.length > 0 ||
+      commodity.shipments.length > 0
+    ) {
+      throw new Error(
+        "Cannot delete commodity with existing trades, inventory, contracts, or shipments",
+      );
     }
 
     const deletedCommodity = await prisma.commodity.delete({
-      where: { id }
+      where: { id },
     });
 
     return deletedCommodity;
   } catch (error) {
-    console.error('Error deleting commodity:', error);
+    console.error("Error deleting commodity:", error);
     throw error;
   }
 }
@@ -355,14 +363,14 @@ export async function getCommodityMarketSummary() {
             trades: true,
             inventory: true,
             contracts: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     const summary = commodities.reduce((acc, commodity) => {
       const typeKey = commodity.type;
-      
+
       if (!acc[typeKey]) {
         acc[typeKey] = {
           count: 0,
@@ -392,9 +400,10 @@ export async function getCommodityMarketSummary() {
     }, {} as any);
 
     // Calculate averages
-    Object.keys(summary).forEach(type => {
+    Object.keys(summary).forEach((type) => {
       if (summary[type].count > 0) {
-        summary[type].averagePrice = summary[type].totalValue / summary[type].count;
+        summary[type].averagePrice =
+          summary[type].totalValue / summary[type].count;
       }
     });
 
@@ -402,11 +411,11 @@ export async function getCommodityMarketSummary() {
       totalCommodities: commodities.length,
       typeBreakdown: summary,
       topGainers: commodities
-        .filter(c => c.priceChangePercent > 0)
+        .filter((c) => c.priceChangePercent > 0)
         .sort((a, b) => b.priceChangePercent - a.priceChangePercent)
         .slice(0, 5),
       topLosers: commodities
-        .filter(c => c.priceChangePercent < 0)
+        .filter((c) => c.priceChangePercent < 0)
         .sort((a, b) => a.priceChangePercent - b.priceChangePercent)
         .slice(0, 5),
       mostTraded: commodities
@@ -414,7 +423,7 @@ export async function getCommodityMarketSummary() {
         .slice(0, 5),
     };
   } catch (error) {
-    console.error('Error fetching commodity market summary:', error);
+    console.error("Error fetching commodity market summary:", error);
     throw error;
   }
 }
@@ -423,11 +432,11 @@ export async function getCommodityMarketSummary() {
 export async function getCommodityPriceHistory(id: string, days: number = 30) {
   try {
     const commodity = await prisma.commodity.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!commodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     // Mock price history generation
@@ -439,14 +448,14 @@ export async function getCommodityPriceHistory(id: string, days: number = 30) {
     for (let i = 0; i < days; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
-      
+
       // Generate mock price with some volatility
       const volatility = 0.02; // 2% daily volatility
       const randomChange = (Math.random() - 0.5) * 2 * volatility;
-      const price = currentPrice * (1 + randomChange * (days - i) / days);
-      
+      const price = currentPrice * (1 + (randomChange * (days - i)) / days);
+
       history.push({
-        date: date.toISOString().split('T')[0],
+        date: date.toISOString().split("T")[0],
         price: Math.round(price * 100) / 100,
         volume: Math.floor(Math.random() * 1000) + 100,
       });
@@ -457,7 +466,7 @@ export async function getCommodityPriceHistory(id: string, days: number = 30) {
       history,
     };
   } catch (error) {
-    console.error('Error fetching commodity price history:', error);
+    console.error("Error fetching commodity price history:", error);
     throw error;
   }
 }

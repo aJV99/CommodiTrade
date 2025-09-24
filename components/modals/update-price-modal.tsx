@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useUpdateCommodityPrice } from '@/lib/hooks/use-commodities';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useUpdateCommodityPrice } from "@/lib/hooks/use-commodities";
 
 interface UpdatePriceModalProps {
   commodityId: string;
@@ -14,14 +20,22 @@ interface UpdatePriceModalProps {
   trigger?: React.ReactNode;
 }
 
-export function UpdatePriceModal({ commodityId, currentPrice, onPriceUpdated, trigger }: UpdatePriceModalProps) {
+export function UpdatePriceModal({
+  commodityId,
+  currentPrice,
+  onPriceUpdated,
+  trigger,
+}: UpdatePriceModalProps) {
   const [open, setOpen] = useState(false);
   const [price, setPrice] = useState(currentPrice.toString());
   const updatePriceMutation = useUpdateCommodityPrice();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updatePriceMutation.mutateAsync({ commodityId, newPrice: parseFloat(price) });
+    await updatePriceMutation.mutateAsync({
+      commodityId,
+      newPrice: parseFloat(price),
+    });
     onPriceUpdated?.();
     setOpen(false);
   };
@@ -29,7 +43,13 @@ export function UpdatePriceModal({ commodityId, currentPrice, onPriceUpdated, tr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger ? trigger : <Button variant="outline" size="sm">Update Price</Button>}
+        {trigger ? (
+          trigger
+        ) : (
+          <Button variant="outline" size="sm">
+            Update Price
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
@@ -48,11 +68,15 @@ export function UpdatePriceModal({ commodityId, currentPrice, onPriceUpdated, tr
             />
           </div>
           <div className="flex justify-end space-x-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={updatePriceMutation.isPending}>
-              {updatePriceMutation.isPending ? 'Updating...' : 'Update'}
+              {updatePriceMutation.isPending ? "Updating..." : "Update"}
             </Button>
           </div>
         </form>
@@ -60,4 +84,3 @@ export function UpdatePriceModal({ commodityId, currentPrice, onPriceUpdated, tr
     </Dialog>
   );
 }
-

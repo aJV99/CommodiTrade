@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,10 +11,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { useDeleteInventoryItem } from '@/lib/hooks/use-inventory';
-import type { InventoryItem, Commodity } from '@prisma/client';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/alert-dialog";
+import { useDeleteInventoryItem } from "@/lib/hooks/use-inventory";
+import type { InventoryItem, Commodity } from "@prisma/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface DeleteInventoryModalProps {
   inventory: InventoryItem & { commodity: Commodity };
@@ -35,7 +35,7 @@ export function DeleteInventoryModal({
     try {
       await deleteInventoryMutation.mutateAsync(inventory.id);
       toast({
-        title: 'Inventory removed',
+        title: "Inventory removed",
         description: `${inventory.commodity.name} at ${inventory.warehouse} has been removed.`,
       });
       onDeleted?.();
@@ -44,12 +44,12 @@ export function DeleteInventoryModal({
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to delete inventory lot. Please try again.';
+          : "Failed to delete inventory lot. Please try again.";
 
       toast({
-        title: 'Unable to remove lot',
+        title: "Unable to remove lot",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -61,8 +61,10 @@ export function DeleteInventoryModal({
         <AlertDialogHeader>
           <AlertDialogTitle>Remove inventory lot</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete the {inventory.commodity.name} lot located in
-            {` ${inventory.warehouse}`} ({inventory.location}). This action cannot be undone.
+            This will permanently delete the {inventory.commodity.name} lot
+            located in
+            {` ${inventory.warehouse}`} ({inventory.location}). This action
+            cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -74,7 +76,7 @@ export function DeleteInventoryModal({
             disabled={deleteInventoryMutation.isPending}
             className="bg-destructive hover:bg-destructive/90"
           >
-            {deleteInventoryMutation.isPending ? 'Removing…' : 'Remove lot'}
+            {deleteInventoryMutation.isPending ? "Removing…" : "Remove lot"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

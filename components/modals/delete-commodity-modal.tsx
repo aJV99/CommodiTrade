@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,9 +11,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { useDeleteCommodity } from '@/lib/hooks/use-commodities';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { useDeleteCommodity } from "@/lib/hooks/use-commodities";
 
 interface DeleteCommodityModalProps {
   commodityId: string;
@@ -40,8 +40,12 @@ export function DeleteCommodityModal({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        {trigger ? trigger : (
-          <Button variant="destructive" size="sm">Delete</Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button variant="destructive" size="sm">
+            Delete
+          </Button>
         )}
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -53,12 +57,14 @@ export function DeleteCommodityModal({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

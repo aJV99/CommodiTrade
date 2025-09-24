@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Search,
   Package,
@@ -27,23 +27,23 @@ import {
   Filter as FilterIcon,
   MoreHorizontal,
   AlertTriangle,
-} from 'lucide-react';
-import Link from 'next/link';
-import { InventoryModal } from '@/components/modals/inventory-modal';
-import { EditInventoryModal } from '@/components/modals/edit-inventory-modal';
-import { DeleteInventoryModal } from '@/components/modals/delete-inventory-modal';
-import { InventoryMovementModal } from '@/components/modals/inventory-movement-modal';
-import { InventoryHistoryDrawer } from '@/components/inventory/inventory-history-drawer';
+} from "lucide-react";
+import Link from "next/link";
+import { InventoryModal } from "@/components/modals/inventory-modal";
+import { EditInventoryModal } from "@/components/modals/edit-inventory-modal";
+import { DeleteInventoryModal } from "@/components/modals/delete-inventory-modal";
+import { InventoryMovementModal } from "@/components/modals/inventory-movement-modal";
+import { InventoryHistoryDrawer } from "@/components/inventory/inventory-history-drawer";
 import {
   useInventory,
   useInventoryValuation,
   useLowStockAlerts,
-} from '@/lib/hooks/use-inventory';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import type { Commodity, InventoryItem } from '@prisma/client';
+} from "@/lib/hooks/use-inventory";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import type { Commodity, InventoryItem } from "@prisma/client";
 
-const SAVED_VIEWS_STORAGE_KEY = 'inventory-saved-views';
+const SAVED_VIEWS_STORAGE_KEY = "inventory-saved-views";
 
 type InventoryFilters = {
   commodityId?: string;
@@ -59,32 +59,32 @@ type SavedView = {
 
 type InventoryWithCommodity = InventoryItem & { commodity: Commodity };
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
   maximumFractionDigits: 0,
 });
 
-const percentageFormatter = new Intl.NumberFormat('en-US', {
-  style: 'percent',
+const percentageFormatter = new Intl.NumberFormat("en-US", {
+  style: "percent",
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
 
 function formatCurrency(value?: number | null) {
   if (value === undefined || value === null) {
-    return '—';
+    return "—";
   }
   return currencyFormatter.format(value);
 }
 
 export default function InventoryPage() {
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<InventoryFilters>({});
-  const [newViewName, setNewViewName] = useState('');
+  const [newViewName, setNewViewName] = useState("");
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
-  const [selectedViewId, setSelectedViewId] = useState<string>('');
+  const [selectedViewId, setSelectedViewId] = useState<string>("");
   const previousMarketValuesRef = useRef<Map<string, number>>(new Map());
 
   const normalizedFilters = useMemo(() => {
@@ -104,33 +104,29 @@ export default function InventoryPage() {
 
   const inventoryRecords = inventory as InventoryWithCommodity[];
 
-  const {
-    data: valuation,
-    error: valuationError,
-  } = useInventoryValuation(normalizedFilters);
+  const { data: valuation, error: valuationError } =
+    useInventoryValuation(normalizedFilters);
 
-  const {
-    data: lowStockAlerts = [],
-    error: lowStockError,
-  } = useLowStockAlerts(100);
+  const { data: lowStockAlerts = [], error: lowStockError } =
+    useLowStockAlerts(100);
 
   const lowStockRecords = lowStockAlerts as InventoryWithCommodity[];
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(SAVED_VIEWS_STORAGE_KEY);
     if (stored) {
       try {
         const parsed: SavedView[] = JSON.parse(stored);
         setSavedViews(parsed);
       } catch (error) {
-        console.error('Failed to parse inventory saved views', error);
+        console.error("Failed to parse inventory saved views", error);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     window.localStorage.setItem(
       SAVED_VIEWS_STORAGE_KEY,
       JSON.stringify(savedViews),
@@ -140,9 +136,12 @@ export default function InventoryPage() {
   useEffect(() => {
     if (inventoryError) {
       toast({
-        title: 'Unable to load inventory',
-        description: inventoryError instanceof Error ? inventoryError.message : 'An unexpected error occurred while loading inventory data.',
-        variant: 'destructive',
+        title: "Unable to load inventory",
+        description:
+          inventoryError instanceof Error
+            ? inventoryError.message
+            : "An unexpected error occurred while loading inventory data.",
+        variant: "destructive",
       });
     }
   }, [inventoryError, toast]);
@@ -150,9 +149,12 @@ export default function InventoryPage() {
   useEffect(() => {
     if (valuationError) {
       toast({
-        title: 'Unable to calculate valuation',
-        description: valuationError instanceof Error ? valuationError.message : 'An unexpected error occurred while calculating valuation.',
-        variant: 'destructive',
+        title: "Unable to calculate valuation",
+        description:
+          valuationError instanceof Error
+            ? valuationError.message
+            : "An unexpected error occurred while calculating valuation.",
+        variant: "destructive",
       });
     }
   }, [valuationError, toast]);
@@ -160,9 +162,12 @@ export default function InventoryPage() {
   useEffect(() => {
     if (lowStockError) {
       toast({
-        title: 'Low stock alerts unavailable',
-        description: lowStockError instanceof Error ? lowStockError.message : 'An unexpected error occurred while fetching low stock alerts.',
-        variant: 'destructive',
+        title: "Low stock alerts unavailable",
+        description:
+          lowStockError instanceof Error
+            ? lowStockError.message
+            : "An unexpected error occurred while fetching low stock alerts.",
+        variant: "destructive",
       });
     }
   }, [lowStockError, toast]);
@@ -189,8 +194,8 @@ export default function InventoryPage() {
 
     if (previousValues.size > 0 && changedLots > 0) {
       toast({
-        title: 'Market prices refreshed',
-        description: `${changedLots} ${changedLots === 1 ? 'lot' : 'lots'} updated after commodity price changes.`,
+        title: "Market prices refreshed",
+        description: `${changedLots} ${changedLots === 1 ? "lot" : "lots"} updated after commodity price changes.`,
       });
     }
   }, [inventory, toast]);
@@ -217,23 +222,30 @@ export default function InventoryPage() {
     for (const item of inventoryRecords) {
       seen.set(item.commodityId, item.commodity.name);
     }
-    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(seen.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
   }, [inventoryRecords]);
 
   const warehouses = useMemo(() => {
-    return Array.from(new Set(inventoryRecords.map((item) => item.warehouse))).sort();
+    return Array.from(
+      new Set(inventoryRecords.map((item) => item.warehouse)),
+    ).sort();
   }, [inventoryRecords]);
 
   const locations = useMemo(() => {
-    return Array.from(new Set(inventoryRecords.map((item) => item.location))).sort();
+    return Array.from(
+      new Set(inventoryRecords.map((item) => item.location)),
+    ).sort();
   }, [inventoryRecords]);
 
   const handleSaveView = () => {
     if (!newViewName.trim()) {
       toast({
-        title: 'Enter a view name',
-        description: 'Name your view before saving it for later use.',
-        variant: 'destructive',
+        title: "Enter a view name",
+        description: "Name your view before saving it for later use.",
+        variant: "destructive",
       });
       return;
     }
@@ -246,10 +258,10 @@ export default function InventoryPage() {
 
     setSavedViews((current) => [...current, view]);
     setSelectedViewId(view.id);
-    setNewViewName('');
+    setNewViewName("");
     toast({
-      title: 'View saved',
-      description: 'Your inventory filters have been saved for quick access.',
+      title: "View saved",
+      description: "Your inventory filters have been saved for quick access.",
     });
   };
 
@@ -263,7 +275,7 @@ export default function InventoryPage() {
 
   const clearFilters = () => {
     setFilters({});
-    setSelectedViewId('');
+    setSelectedViewId("");
   };
 
   const renderValuationMetric = (
@@ -275,46 +287,55 @@ export default function InventoryPage() {
   ) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-slate-600">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-slate-600">
+          {label}
+        </CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{formatCurrency(value)}</div>
         {subtitle && (
-          <p className={cn('text-xs mt-1', trendColor)}>{subtitle}</p>
+          <p className={cn("text-xs mt-1", trendColor)}>{subtitle}</p>
         )}
       </CardContent>
     </Card>
   );
 
   const averagePnLPercent = valuation?.averageUnrealizedPnLPercent ?? 0;
-  const pnLTrendColor = averagePnLPercent >= 0 ? 'text-green-600' : 'text-red-600';
+  const pnLTrendColor =
+    averagePnLPercent >= 0 ? "text-green-600" : "text-red-600";
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Inventory Management</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Inventory Management
+          </h1>
           <p className="text-slate-600 mt-2">
             Track your commodity lots, valuations, and warehouse positions.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <InventoryModal onInventoryCreated={refetch} />
-          <Button variant="outline" onClick={() => refetch()}>Refresh</Button>
+          <Button variant="outline" onClick={() => refetch()}>
+            Refresh
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         {renderValuationMetric(
-          'Total Value',
+          "Total Value",
           <Package className="h-4 w-4 text-slate-400" />,
           valuation?.totalMarketValue,
-          'Market value',
+          "Market value",
         )}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Unrealized P&L</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Unrealized P&L
+            </CardTitle>
             {averagePnLPercent >= 0 ? (
               <TrendingUp className="h-4 w-4 text-green-600" />
             ) : (
@@ -322,34 +343,48 @@ export default function InventoryPage() {
             )}
           </CardHeader>
           <CardContent>
-            <div className={cn('text-2xl font-bold', pnLTrendColor)}>
+            <div className={cn("text-2xl font-bold", pnLTrendColor)}>
               {formatCurrency(valuation?.totalUnrealizedPnL)}
             </div>
-            <p className={cn('text-xs mt-1', pnLTrendColor)}>
+            <p className={cn("text-xs mt-1", pnLTrendColor)}>
               {percentageFormatter.format((averagePnLPercent || 0) / 100)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Lots</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Total Lots
+            </CardTitle>
             <Package className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inventoryRecords.length}</div>
-            <p className="text-xs text-slate-500 mt-1">Active inventory records</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Active inventory records
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Warehouses</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Warehouses
+            </CardTitle>
             <Package className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(inventoryRecords.map((item) => `${item.warehouse}-${item.location}`)).size}
+              {
+                new Set(
+                  inventoryRecords.map(
+                    (item) => `${item.warehouse}-${item.location}`,
+                  ),
+                ).size
+              }
             </div>
-            <p className="text-xs text-slate-500 mt-1">Unique warehouse & location pairs</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Unique warehouse & location pairs
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -357,20 +392,24 @@ export default function InventoryPage() {
       <Card>
         <CardHeader>
           <div>
-              <CardTitle className="flex items-center gap-2">
-                <FilterIcon className="h-4 w-4" /> Filters & saved views
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Narrow the view by commodity, warehouse, or location and reuse saved combinations.
-              </p>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <FilterIcon className="h-4 w-4" /> Filters & saved views
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Narrow the view by commodity, warehouse, or location and reuse
+              saved combinations.
+            </p>
+          </div>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex flex-col gap-3 md:flex-row md:items-end">
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <Select
-                  value={filters.commodityId ?? ''}
+                  value={filters.commodityId ?? ""}
                   onValueChange={(value) =>
-                    setFilters((current) => ({ ...current, commodityId: value || undefined }))
+                    setFilters((current) => ({
+                      ...current,
+                      commodityId: value || undefined,
+                    }))
                   }
                 >
                   <SelectTrigger className="w-full md:w-48">
@@ -386,9 +425,12 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={filters.warehouse ?? ''}
+                  value={filters.warehouse ?? ""}
                   onValueChange={(value) =>
-                    setFilters((current) => ({ ...current, warehouse: value || undefined }))
+                    setFilters((current) => ({
+                      ...current,
+                      warehouse: value || undefined,
+                    }))
                   }
                 >
                   <SelectTrigger className="w-full md:w-40">
@@ -404,9 +446,12 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={filters.location ?? ''}
+                  value={filters.location ?? ""}
                   onValueChange={(value) =>
-                    setFilters((current) => ({ ...current, location: value || undefined }))
+                    setFilters((current) => ({
+                      ...current,
+                      location: value || undefined,
+                    }))
                   }
                 >
                   <SelectTrigger className="w-full md:w-40">
@@ -508,16 +553,22 @@ export default function InventoryPage() {
 
                   {!isLoading && filteredInventory.length === 0 && (
                     <tr>
-                      <td colSpan={11} className="py-10 text-center text-sm text-muted-foreground">
-                        No inventory records match your filters. Adjust the filters or add new stock.
+                      <td
+                        colSpan={11}
+                        className="py-10 text-center text-sm text-muted-foreground"
+                      >
+                        No inventory records match your filters. Adjust the
+                        filters or add new stock.
                       </td>
                     </tr>
                   )}
 
                   {!isLoading &&
                     filteredInventory.map((item) => {
-                      const unrealizedPnLPerUnit = item.marketValue - item.costBasis;
-                      const unrealizedPnL = unrealizedPnLPerUnit * item.quantity;
+                      const unrealizedPnLPerUnit =
+                        item.marketValue - item.costBasis;
+                      const unrealizedPnL =
+                        unrealizedPnLPerUnit * item.quantity;
                       const unrealizedPnLPercent =
                         item.costBasis > 0
                           ? (unrealizedPnLPerUnit / item.costBasis) * 100
@@ -534,8 +585,12 @@ export default function InventoryPage() {
                           <td className="py-3 px-4 text-slate-700">
                             {item.quantity.toLocaleString()} {item.unit}
                           </td>
-                          <td className="py-3 px-4 text-slate-700">{item.warehouse}</td>
-                          <td className="py-3 px-4 text-slate-700">{item.location}</td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {item.warehouse}
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {item.location}
+                          </td>
                           <td className="py-3 px-4">
                             <Badge variant="outline">{item.quality}</Badge>
                           </td>
@@ -548,13 +603,15 @@ export default function InventoryPage() {
                           <td className="py-3 px-4">
                             <div
                               className={cn(
-                                'font-medium',
-                                unrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600',
+                                "font-medium",
+                                unrealizedPnL >= 0
+                                  ? "text-green-600"
+                                  : "text-red-600",
                               )}
                             >
                               {formatCurrency(unrealizedPnL)}
                               <div className="text-xs">
-                                ({unrealizedPnLPercent >= 0 ? '+' : ''}
+                                ({unrealizedPnLPercent >= 0 ? "+" : ""}
                                 {unrealizedPnLPercent.toFixed(1)}%)
                               </div>
                             </div>
@@ -596,7 +653,11 @@ export default function InventoryPage() {
                               />
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex items-center gap-1"
+                                  >
                                     Manage
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
@@ -607,7 +668,9 @@ export default function InventoryPage() {
                                     onUpdated={refetch}
                                     trigger={
                                       <DropdownMenuItem
-                                        onSelect={(event) => event.preventDefault()}
+                                        onSelect={(event) =>
+                                          event.preventDefault()
+                                        }
                                       >
                                         Edit details
                                       </DropdownMenuItem>
@@ -618,7 +681,9 @@ export default function InventoryPage() {
                                     onMovementProcessed={refetch}
                                     trigger={
                                       <DropdownMenuItem
-                                        onSelect={(event) => event.preventDefault()}
+                                        onSelect={(event) =>
+                                          event.preventDefault()
+                                        }
                                       >
                                         Adjust stock
                                       </DropdownMenuItem>
@@ -629,7 +694,9 @@ export default function InventoryPage() {
                                     onDeleted={refetch}
                                     trigger={
                                       <DropdownMenuItem
-                                        onSelect={(event) => event.preventDefault()}
+                                        onSelect={(event) =>
+                                          event.preventDefault()
+                                        }
                                         className="text-destructive focus:text-destructive"
                                       >
                                         Remove lot
@@ -653,7 +720,8 @@ export default function InventoryPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-amber-500" /> Low stock alerts
+                <AlertTriangle className="h-4 w-4 text-amber-500" /> Low stock
+                alerts
               </CardTitle>
               <p className="text-xs text-muted-foreground">
                 Lots approaching minimum levels. Top up or transfer inventory.
@@ -681,7 +749,10 @@ export default function InventoryPage() {
                         {alert.warehouse} — {alert.location}
                       </p>
                     </div>
-                    <Badge variant="outline" className="border-amber-300 text-amber-800">
+                    <Badge
+                      variant="outline"
+                      className="border-amber-300 text-amber-800"
+                    >
                       {alert.quantity.toLocaleString()} {alert.unit}
                     </Badge>
                   </div>
@@ -729,7 +800,14 @@ export default function InventoryPage() {
                       <div className="font-semibold">
                         {formatCurrency(entry.marketValue)}
                       </div>
-                      <div className={cn('text-xs', entry.unrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600')}>
+                      <div
+                        className={cn(
+                          "text-xs",
+                          entry.unrealizedPnL >= 0
+                            ? "text-green-600"
+                            : "text-red-600",
+                        )}
+                      >
                         {formatCurrency(entry.unrealizedPnL)} P&L
                       </div>
                     </div>
@@ -757,14 +835,25 @@ export default function InventoryPage() {
                     className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3"
                   >
                     <div>
-                      <p className="font-semibold text-slate-900">{entry.warehouse}</p>
-                      <p className="text-xs text-muted-foreground">{entry.location}</p>
+                      <p className="font-semibold text-slate-900">
+                        {entry.warehouse}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.location}
+                      </p>
                     </div>
                     <div className="text-right text-sm">
                       <div className="font-semibold">
                         {formatCurrency(entry.marketValue)}
                       </div>
-                      <div className={cn('text-xs', entry.unrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600')}>
+                      <div
+                        className={cn(
+                          "text-xs",
+                          entry.unrealizedPnL >= 0
+                            ? "text-green-600"
+                            : "text-red-600",
+                        )}
+                      >
                         {formatCurrency(entry.unrealizedPnL)} P&L
                       </div>
                     </div>

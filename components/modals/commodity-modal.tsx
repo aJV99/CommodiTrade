@@ -1,26 +1,29 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Plus } from 'lucide-react';
-import { useCreateCommodity, useUpdateCommodity } from '@/lib/hooks/use-commodities';
-import { CommodityType } from '@prisma/client';
+} from "@/components/ui/select";
+import { Plus } from "lucide-react";
+import {
+  useCreateCommodity,
+  useUpdateCommodity,
+} from "@/lib/hooks/use-commodities";
+import { CommodityType } from "@prisma/client";
 
 interface CommodityModalProps {
   onCommodityCreated?: () => void;
@@ -43,10 +46,10 @@ export function CommodityModal({
 }: CommodityModalProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: commodity?.name || '',
-    type: (commodity?.type as CommodityType) || ('' as any),
-    unit: commodity?.unit || '',
-    currentPrice: commodity?.currentPrice?.toString() || '',
+    name: commodity?.name || "",
+    type: (commodity?.type as CommodityType) || ("" as any),
+    unit: commodity?.unit || "",
+    currentPrice: commodity?.currentPrice?.toString() || "",
   });
 
   const createCommodityMutation = useCreateCommodity();
@@ -74,12 +77,12 @@ export function CommodityModal({
           unit: formData.unit,
           currentPrice: parseFloat(formData.currentPrice),
         });
-        setFormData({ name: '', type: '' as any, unit: '', currentPrice: '' });
+        setFormData({ name: "", type: "" as any, unit: "", currentPrice: "" });
         onCommodityCreated && onCommodityCreated();
       }
       setOpen(false);
     } catch (error) {
-      console.error('Error saving commodity:', error);
+      console.error("Error saving commodity:", error);
     }
   };
 
@@ -97,7 +100,9 @@ export function CommodityModal({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Commodity' : 'Add Commodity'}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit Commodity" : "Add Commodity"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -105,7 +110,9 @@ export function CommodityModal({
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder="Commodity name"
               required
             />
@@ -135,7 +142,9 @@ export function CommodityModal({
               <Input
                 id="unit"
                 value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, unit: e.target.value })
+                }
                 placeholder="e.g., BBL, MT"
                 required
               />
@@ -148,26 +157,36 @@ export function CommodityModal({
               type="number"
               step="0.01"
               value={formData.currentPrice}
-              onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, currentPrice: e.target.value })
+              }
               placeholder="Enter price"
               required
             />
           </div>
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isEdit ? updateCommodityMutation.isPending : createCommodityMutation.isPending}
+              disabled={
+                isEdit
+                  ? updateCommodityMutation.isPending
+                  : createCommodityMutation.isPending
+              }
             >
               {isEdit
                 ? updateCommodityMutation.isPending
-                  ? 'Saving...'
-                  : 'Save Changes'
+                  ? "Saving..."
+                  : "Save Changes"
                 : createCommodityMutation.isPending
-                  ? 'Adding...'
-                  : 'Add Commodity'}
+                  ? "Adding..."
+                  : "Add Commodity"}
             </Button>
           </div>
         </form>
@@ -175,4 +194,3 @@ export function CommodityModal({
     </Dialog>
   );
 }
-

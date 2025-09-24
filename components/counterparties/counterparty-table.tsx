@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 import {
   Table,
   TableBody,
@@ -8,21 +8,26 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
-import type { Counterparty, Contract, CreditRating, CounterpartyType } from '@prisma/client';
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import type {
+  Counterparty,
+  Contract,
+  CreditRating,
+  CounterpartyType,
+} from "@prisma/client";
 
 export type CounterpartyTableRow = Counterparty & {
-  contracts: Pick<Contract, 'id' | 'status' | 'totalValue'>[];
+  contracts: Pick<Contract, "id" | "status" | "totalValue">[];
   _count: {
     contracts: number;
   };
@@ -45,28 +50,32 @@ interface CounterpartyTableProps {
 }
 
 const ratingColors: Record<CreditRating, string> = {
-  AAA: 'bg-emerald-100 text-emerald-700',
-  AA: 'bg-emerald-100 text-emerald-700',
-  A: 'bg-sky-100 text-sky-700',
-  BBB: 'bg-amber-100 text-amber-700',
-  BB: 'bg-orange-100 text-orange-700',
-  B: 'bg-red-100 text-red-700',
+  AAA: "bg-emerald-100 text-emerald-700",
+  AA: "bg-emerald-100 text-emerald-700",
+  A: "bg-sky-100 text-sky-700",
+  BBB: "bg-amber-100 text-amber-700",
+  BB: "bg-orange-100 text-orange-700",
+  B: "bg-red-100 text-red-700",
 };
 
 const typeColors: Record<CounterpartyType, string> = {
-  SUPPLIER: 'bg-blue-100 text-blue-700',
-  CUSTOMER: 'bg-green-100 text-green-700',
-  BOTH: 'bg-purple-100 text-purple-700',
+  SUPPLIER: "bg-blue-100 text-blue-700",
+  CUSTOMER: "bg-green-100 text-green-700",
+  BOTH: "bg-purple-100 text-purple-700",
 };
 
 const typeLabels: Record<CounterpartyType, string> = {
-  SUPPLIER: 'Supplier',
-  CUSTOMER: 'Customer',
-  BOTH: 'Supplier & Customer',
+  SUPPLIER: "Supplier",
+  CUSTOMER: "Customer",
+  BOTH: "Supplier & Customer",
 };
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
 
 export function CounterpartyTable({
   data,
@@ -74,7 +83,7 @@ export function CounterpartyTable({
   onEdit,
   onCredit,
   onDelete,
-  emptyMessage = 'No counterparties match your filters.',
+  emptyMessage = "No counterparties match your filters.",
   pagination,
 }: CounterpartyTableProps) {
   return (
@@ -95,29 +104,44 @@ export function CounterpartyTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map(counterparty => {
+            {data.map((counterparty) => {
               const creditLimit = counterparty.creditLimit || 0;
               const creditUsed = counterparty.creditUsed || 0;
-              const utilization = creditLimit > 0 ? Math.min(100, (creditUsed / creditLimit) * 100) : 0;
+              const utilization =
+                creditLimit > 0
+                  ? Math.min(100, (creditUsed / creditLimit) * 100)
+                  : 0;
               const available = creditLimit - creditUsed;
-              const activeContracts = counterparty.contracts.filter(contract => contract.status === 'ACTIVE').length;
+              const activeContracts = counterparty.contracts.filter(
+                (contract) => contract.status === "ACTIVE",
+              ).length;
 
               return (
                 <TableRow key={counterparty.id} className="bg-white">
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="font-semibold text-slate-900">{counterparty.name}</div>
-                      <div className="text-sm text-slate-500">{counterparty.contactPerson}</div>
+                      <div className="font-semibold text-slate-900">
+                        {counterparty.name}
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {counterparty.contactPerson}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${typeColors[counterparty.type]} font-medium`}>
+                    <Badge
+                      className={`${typeColors[counterparty.type]} font-medium`}
+                    >
                       {typeLabels[counterparty.type]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-slate-700">{counterparty.country}</TableCell>
+                  <TableCell className="text-slate-700">
+                    {counterparty.country}
+                  </TableCell>
                   <TableCell>
-                    <Badge className={`${ratingColors[counterparty.rating]} font-semibold`}>
+                    <Badge
+                      className={`${ratingColors[counterparty.rating]} font-semibold`}
+                    >
                       {counterparty.rating}
                     </Badge>
                   </TableCell>
@@ -125,25 +149,37 @@ export function CounterpartyTable({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm text-slate-600">
                         <span>{formatCurrency(creditUsed)}</span>
-                        <span className="font-medium text-slate-900">{formatCurrency(creditLimit)}</span>
+                        <span className="font-medium text-slate-900">
+                          {formatCurrency(creditLimit)}
+                        </span>
                       </div>
                       <Progress value={utilization} />
                       <div className="flex items-center justify-between text-xs text-slate-500">
                         <span>{utilization.toFixed(1)}% used</span>
-                        <span>Avail. {formatCurrency(Math.max(0, available))}</span>
+                        <span>
+                          Avail. {formatCurrency(Math.max(0, available))}
+                        </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-sm">
-                      <div className="font-semibold text-slate-900">{counterparty.totalTrades}</div>
-                      <div className="text-slate-500">Volume {counterparty.totalVolume.toLocaleString()}</div>
+                      <div className="font-semibold text-slate-900">
+                        {counterparty.totalTrades}
+                      </div>
+                      <div className="text-slate-500">
+                        Volume {counterparty.totalVolume.toLocaleString()}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-sm">
-                      <div className="font-semibold text-slate-900">{counterparty._count?.contracts ?? 0}</div>
-                      <div className="text-slate-500">{activeContracts} active</div>
+                      <div className="font-semibold text-slate-900">
+                        {counterparty._count?.contracts ?? 0}
+                      </div>
+                      <div className="text-slate-500">
+                        {activeContracts} active
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -160,13 +196,17 @@ export function CounterpartyTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => onView(counterparty.id)}>
+                        <DropdownMenuItem
+                          onClick={() => onView(counterparty.id)}
+                        >
                           View profile
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEdit(counterparty)}>
                           Edit details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onCredit(counterparty)}>
+                        <DropdownMenuItem
+                          onClick={() => onCredit(counterparty)}
+                        >
                           Update credit
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -183,7 +223,10 @@ export function CounterpartyTable({
             })}
             {data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-sm text-slate-500">
+                <TableCell
+                  colSpan={9}
+                  className="h-32 text-center text-sm text-slate-500"
+                >
                   {emptyMessage}
                 </TableCell>
               </TableRow>
@@ -193,9 +236,7 @@ export function CounterpartyTable({
       </div>
       {pagination && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            Page {pagination.page + 1}
-          </p>
+          <p className="text-sm text-slate-500">Page {pagination.page + 1}</p>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -219,4 +260,3 @@ export function CounterpartyTable({
     </div>
   );
 }
-

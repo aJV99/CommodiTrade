@@ -1,7 +1,7 @@
 "use server";
-import { prisma } from '@/lib/prisma';
-import { TradeType, TradeStatus } from '@prisma/client';
-import { processInventoryMovement } from '@/lib/database/inventory';
+import { prisma } from "@/lib/prisma";
+import { TradeType, TradeStatus } from "@prisma/client";
+import { processInventoryMovement } from "@/lib/database/inventory";
 
 export interface CreateTradeData {
   commodityId: string;
@@ -27,20 +27,20 @@ export async function createTrade(data: CreateTradeData) {
   try {
     // Validate commodity exists
     const commodity = await prisma.commodity.findUnique({
-      where: { id: data.commodityId }
+      where: { id: data.commodityId },
     });
-    
+
     if (!commodity) {
-      throw new Error('Commodity not found');
+      throw new Error("Commodity not found");
     }
 
     // Validate counterparty exists
     const counterparty = await prisma.counterparty.findUnique({
-      where: { id: data.counterpartyId }
+      where: { id: data.counterpartyId },
     });
-    
+
     if (!counterparty) {
-      throw new Error('Counterparty not found');
+      throw new Error("Counterparty not found");
     }
 
     // Calculate total value
@@ -49,7 +49,7 @@ export async function createTrade(data: CreateTradeData) {
     // Check counterparty credit limit
     const newCreditUsed = counterparty.creditUsed + totalValue;
     if (newCreditUsed > counterparty.creditLimit) {
-      throw new Error('Trade exceeds counterparty credit limit');
+      throw new Error("Trade exceeds counterparty credit limit");
     }
 
     // Create trade in transaction
@@ -65,7 +65,7 @@ export async function createTrade(data: CreateTradeData) {
         include: {
           commodity: true,
           user: true,
-        }
+        },
       });
 
       // Update counterparty credit usage and trade count
@@ -76,7 +76,7 @@ export async function createTrade(data: CreateTradeData) {
           totalTrades: { increment: 1 },
           totalVolume: { increment: data.quantity },
           lastTradeDate: new Date(),
-        }
+        },
       });
 
       return newTrade;
@@ -84,7 +84,7 @@ export async function createTrade(data: CreateTradeData) {
 
     return trade;
   } catch (error) {
-    console.error('Error creating trade:', error);
+    console.error("Error creating trade:", error);
     throw error;
   }
 }
@@ -109,7 +109,7 @@ export async function getTrades(filters?: {
     if (filters?.commodityId) where.commodityId = filters.commodityId;
     if (filters?.counterpartyId) where.counterpartyId = filters.counterpartyId;
     if (filters?.userId) where.userId = filters.userId;
-    
+
     if (filters?.dateFrom || filters?.dateTo) {
       where.tradeDate = {};
       if (filters.dateFrom) where.tradeDate.gte = filters.dateFrom;
@@ -124,14 +124,14 @@ export async function getTrades(filters?: {
         shipments: true,
         counterparty: true,
       },
-      orderBy: { tradeDate: 'desc' },
+      orderBy: { tradeDate: "desc" },
       take: filters?.limit || 100,
       skip: filters?.offset || 0,
     });
 
     return trades;
   } catch (error) {
-    console.error('Error fetching trades:', error);
+    console.error("Error fetching trades:", error);
     throw error;
   }
 }
@@ -148,18 +148,18 @@ export async function getTradeById(id: string) {
         shipments: {
           include: {
             commodity: true,
-          }
+          },
         },
-      }
+      },
     });
 
     if (!trade) {
-      throw new Error('Trade not found');
+      throw new Error("Trade not found");
     }
 
     return trade;
   } catch (error) {
-    console.error('Error fetching trade:', error);
+    console.error("Error fetching trade:", error);
     throw error;
   }
 }
@@ -169,11 +169,11 @@ export async function updateTrade(id: string, data: UpdateTradeData) {
   try {
     const existingTrade = await prisma.trade.findUnique({
       where: { id },
-      include: { commodity: true }
+      include: { commodity: true },
     });
 
     if (!existingTrade) {
-      throw new Error('Trade not found');
+      throw new Error("Trade not found");
     }
 
     // Calculate new total value if quantity or price changed
@@ -195,12 +195,12 @@ export async function updateTrade(id: string, data: UpdateTradeData) {
         commodity: true,
         user: true,
         shipments: true,
-      }
+      },
     });
 
     return updatedTrade;
   } catch (error) {
-    console.error('Error updating trade:', error);
+    console.error("Error updating trade:", error);
     throw error;
   }
 }
@@ -210,15 +210,15 @@ export async function executeTrade(id: string) {
   try {
     const trade = await prisma.trade.findUnique({
       where: { id },
-      include: { commodity: true }
+      include: { commodity: true },
     });
 
     if (!trade) {
-      throw new Error('Trade not found');
+      throw new Error("Trade not found");
     }
 
     if (trade.status !== TradeStatus.OPEN) {
-      throw new Error('Only open trades can be executed');
+      throw new Error("Only open trades can be executed");
     }
 
     const executedTrade = await prisma.$transaction(async (tx) => {
@@ -232,10 +232,10 @@ export async function executeTrade(id: string) {
         include: {
           commodity: true,
           user: true,
-        }
+        },
       });
 
-      const defaultWarehouse = 'Main Warehouse';
+      const defaultWarehouse = "Main Warehouse";
 
       if (trade.type === TradeType.BUY) {
         const existingInventory = await tx.inventoryItem.findFirst({
@@ -243,7 +243,7 @@ export async function executeTrade(id: string) {
             commodityId: trade.commodityId,
             warehouse: defaultWarehouse,
             location: trade.location,
-            quality: 'Standard',
+            quality: "Standard",
           },
         });
 
@@ -256,7 +256,7 @@ export async function executeTrade(id: string) {
               unit: trade.commodity.unit,
               warehouse: defaultWarehouse,
               location: trade.location,
-              quality: 'Standard',
+              quality: "Standard",
               costBasis: trade.price,
               marketValue: trade.commodity.currentPrice,
             },
@@ -266,10 +266,10 @@ export async function executeTrade(id: string) {
         await processInventoryMovement(
           {
             inventoryId: targetInventory.id,
-            type: 'IN',
+            type: "IN",
             quantity: trade.quantity,
             reason: `Trade ${trade.id} execution`,
-            referenceType: 'TRADE',
+            referenceType: "TRADE",
             referenceId: trade.id,
             unitCost: trade.price,
             unitMarketValue: trade.commodity.currentPrice,
@@ -282,27 +282,27 @@ export async function executeTrade(id: string) {
             commodityId: trade.commodityId,
             location: trade.location,
           },
-          orderBy: { lastUpdated: 'desc' },
+          orderBy: { lastUpdated: "desc" },
         });
 
         const fallbackLot = lot
           ? lot
           : await tx.inventoryItem.findFirst({
               where: { commodityId: trade.commodityId },
-              orderBy: { lastUpdated: 'desc' },
+              orderBy: { lastUpdated: "desc" },
             });
 
         if (!fallbackLot) {
-          throw new Error('No inventory available for SELL execution');
+          throw new Error("No inventory available for SELL execution");
         }
 
         await processInventoryMovement(
           {
             inventoryId: fallbackLot.id,
-            type: 'OUT',
+            type: "OUT",
             quantity: trade.quantity,
             reason: `Trade ${trade.id} execution`,
-            referenceType: 'TRADE',
+            referenceType: "TRADE",
             referenceId: trade.id,
             unitMarketValue: trade.price,
           },
@@ -315,7 +315,7 @@ export async function executeTrade(id: string) {
 
     return executedTrade;
   } catch (error) {
-    console.error('Error executing trade:', error);
+    console.error("Error executing trade:", error);
     throw error;
   }
 }
@@ -324,15 +324,15 @@ export async function executeTrade(id: string) {
 export async function cancelTrade(id: string, reason?: string) {
   try {
     const trade = await prisma.trade.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!trade) {
-      throw new Error('Trade not found');
+      throw new Error("Trade not found");
     }
 
     if (trade.status !== TradeStatus.OPEN) {
-      throw new Error('Only open trades can be cancelled');
+      throw new Error("Only open trades can be cancelled");
     }
 
     const cancelledTrade = await prisma.$transaction(async (tx) => {
@@ -346,12 +346,12 @@ export async function cancelTrade(id: string, reason?: string) {
         include: {
           commodity: true,
           user: true,
-        }
+        },
       });
 
       // Reverse counterparty credit usage
       const counterparty = await tx.counterparty.findUnique({
-        where: { id: trade.counterpartyId }
+        where: { id: trade.counterpartyId },
       });
 
       if (counterparty) {
@@ -361,7 +361,7 @@ export async function cancelTrade(id: string, reason?: string) {
             creditUsed: Math.max(0, counterparty.creditUsed - trade.totalValue),
             totalTrades: Math.max(0, counterparty.totalTrades - 1),
             totalVolume: Math.max(0, counterparty.totalVolume - trade.quantity),
-          }
+          },
         });
       }
 
@@ -370,7 +370,7 @@ export async function cancelTrade(id: string, reason?: string) {
 
     return cancelledTrade;
   } catch (error) {
-    console.error('Error cancelling trade:', error);
+    console.error("Error cancelling trade:", error);
     throw error;
   }
 }
@@ -383,7 +383,7 @@ export async function getTradeStatistics(filters?: {
 }) {
   try {
     const where: any = {};
-    
+
     if (filters?.userId) where.userId = filters.userId;
     if (filters?.dateFrom || filters?.dateTo) {
       where.tradeDate = {};
@@ -403,16 +403,18 @@ export async function getTradeStatistics(filters?: {
       prisma.trade.count({ where }),
       prisma.trade.aggregate({
         where,
-        _sum: { quantity: true }
+        _sum: { quantity: true },
       }),
       prisma.trade.aggregate({
         where,
-        _sum: { totalValue: true }
+        _sum: { totalValue: true },
       }),
       prisma.trade.count({ where: { ...where, status: TradeStatus.OPEN } }),
       prisma.trade.count({ where: { ...where, status: TradeStatus.EXECUTED } }),
       prisma.trade.count({ where: { ...where, status: TradeStatus.SETTLED } }),
-      prisma.trade.count({ where: { ...where, status: TradeStatus.CANCELLED } }),
+      prisma.trade.count({
+        where: { ...where, status: TradeStatus.CANCELLED },
+      }),
     ]);
 
     return {
@@ -425,7 +427,7 @@ export async function getTradeStatistics(filters?: {
       cancelledTrades,
     };
   } catch (error) {
-    console.error('Error fetching trade statistics:', error);
+    console.error("Error fetching trade statistics:", error);
     throw error;
   }
 }

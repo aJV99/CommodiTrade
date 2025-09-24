@@ -1,32 +1,26 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import {
   useCommodityById,
   useCommodityPriceHistory,
-} from '@/lib/hooks/use-commodities';
-import { CommodityModal } from '@/components/modals/commodity-modal';
-import { UpdatePriceModal } from '@/components/modals/update-price-modal';
-import { DeleteCommodityModal } from '@/components/modals/delete-commodity-modal';
+} from "@/lib/hooks/use-commodities";
+import { CommodityModal } from "@/components/modals/commodity-modal";
+import { UpdatePriceModal } from "@/components/modals/update-price-modal";
+import { DeleteCommodityModal } from "@/components/modals/delete-commodity-modal";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/components/ui/chart';
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from 'recharts';
+} from "@/components/ui/chart";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
 
 export default function CommodityDetailsPage() {
   const params = useParams();
@@ -49,7 +43,7 @@ export default function CommodityDetailsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
         <h2 className="text-2xl font-bold">Commodity Not Found</h2>
-        <Button onClick={() => router.push('/commodities')} variant="outline">
+        <Button onClick={() => router.push("/commodities")} variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Commodities
         </Button>
@@ -59,56 +53,83 @@ export default function CommodityDetailsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'AGRICULTURAL':
-        return 'bg-green-100 text-green-800';
-      case 'ENERGY':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'METALS':
-        return 'bg-gray-100 text-gray-800';
-      case 'LIVESTOCK':
-        return 'bg-purple-100 text-purple-800';
+      case "AGRICULTURAL":
+        return "bg-green-100 text-green-800";
+      case "ENERGY":
+        return "bg-yellow-100 text-yellow-800";
+      case "METALS":
+        return "bg-gray-100 text-gray-800";
+      case "LIVESTOCK":
+        return "bg-purple-100 text-purple-800";
       default:
-        return 'bg-slate-100 text-slate-800';
+        return "bg-slate-100 text-slate-800";
     }
   };
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(value);
 
   const priceChangePositive = commodity.priceChange >= 0;
 
   const priceHistory = priceData?.history ?? [];
 
-  const inventoryTotal = commodity.inventory.reduce((sum, i) => sum + i.quantity, 0);
-  const contractTotal = commodity.contracts.reduce((sum, c) => sum + c.quantity, 0);
+  const inventoryTotal = commodity.inventory.reduce(
+    (sum, i) => sum + i.quantity,
+    0,
+  );
+  const contractTotal = commodity.contracts.reduce(
+    (sum, c) => sum + c.quantity,
+    0,
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button onClick={() => router.push('/commodities')} variant="outline" size="sm">
+          <Button
+            onClick={() => router.push("/commodities")}
+            variant="outline"
+            size="sm"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold text-slate-900">{commodity.name}</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            {commodity.name}
+          </h1>
         </div>
         <div className="flex space-x-2">
           <CommodityModal
             commodity={commodity}
             onCommodityUpdated={refetch}
-            trigger={<Button variant="outline" size="sm">Edit</Button>}
+            trigger={
+              <Button variant="outline" size="sm">
+                Edit
+              </Button>
+            }
           />
           <UpdatePriceModal
             commodityId={id}
             currentPrice={commodity.currentPrice}
             onPriceUpdated={refetch}
-            trigger={<Button variant="outline" size="sm">Update Price</Button>}
+            trigger={
+              <Button variant="outline" size="sm">
+                Update Price
+              </Button>
+            }
           />
           <DeleteCommodityModal
             commodityId={id}
             commodityName={commodity.name}
-            onCommodityDeleted={() => router.push('/commodities')}
-            trigger={<Button variant="destructive" size="sm">Delete</Button>}
+            onCommodityDeleted={() => router.push("/commodities")}
+            trigger={
+              <Button variant="destructive" size="sm">
+                Delete
+              </Button>
+            }
           />
         </div>
       </div>
@@ -119,17 +140,23 @@ export default function CommodityDetailsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
-            <Badge className={getTypeColor(commodity.type)}>{commodity.type}</Badge>
+            <Badge className={getTypeColor(commodity.type)}>
+              {commodity.type}
+            </Badge>
             <span className="text-slate-700">Unit: {commodity.unit}</span>
           </div>
           <div className="text-2xl font-bold">
             {formatCurrency(commodity.currentPrice)}
             <span
               className={`ml-2 text-sm font-medium ${
-                priceChangePositive ? 'text-green-600' : 'text-red-600'
+                priceChangePositive ? "text-green-600" : "text-red-600"
               }`}
             >
-              {priceChangePositive ? <TrendingUp className="inline h-4 w-4" /> : <TrendingDown className="inline h-4 w-4" />}
+              {priceChangePositive ? (
+                <TrendingUp className="inline h-4 w-4" />
+              ) : (
+                <TrendingDown className="inline h-4 w-4" />
+              )}
               {commodity.priceChangePercent.toFixed(2)}%
             </span>
           </div>
@@ -137,7 +164,9 @@ export default function CommodityDetailsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="text-sm text-slate-600">Trades</div>
-              <div className="text-lg font-semibold">{commodity.trades.length}</div>
+              <div className="text-lg font-semibold">
+                {commodity.trades.length}
+              </div>
             </div>
             <div>
               <div className="text-sm text-slate-600">Inventory Qty</div>
@@ -149,7 +178,9 @@ export default function CommodityDetailsPage() {
             </div>
             <div>
               <div className="text-sm text-slate-600">Shipments</div>
-              <div className="text-lg font-semibold">{commodity.shipments.length}</div>
+              <div className="text-lg font-semibold">
+                {commodity.shipments.length}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -162,7 +193,7 @@ export default function CommodityDetailsPage() {
             {[7, 30, 90].map((d) => (
               <Button
                 key={d}
-                variant={days === d ? 'default' : 'outline'}
+                variant={days === d ? "default" : "outline"}
                 size="sm"
                 onClick={() => setDays(d)}
               >
@@ -173,13 +204,13 @@ export default function CommodityDetailsPage() {
         </CardHeader>
         <CardContent>
           <ChartContainer
-            config={{ price: { label: 'Price', color: 'hsl(var(--chart-1))' } }}
+            config={{ price: { label: "Price", color: "hsl(var(--chart-1))" } }}
             className="h-80 w-full"
           >
             <LineChart data={priceHistory}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
-              <YAxis domain={[ 'auto', 'auto' ]} />
+              <YAxis domain={["auto", "auto"]} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Line
                 type="monotone"
@@ -210,7 +241,7 @@ export default function CommodityDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {commodity.trades.slice(0,5).map((t) => (
+                  {commodity.trades.slice(0, 5).map((t) => (
                     <tr key={t.id} className="border-b last:border-0">
                       <td className="py-2 px-3">
                         {new Date(t.tradeDate).toLocaleDateString()}
@@ -241,7 +272,7 @@ export default function CommodityDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {commodity.inventory.slice(0,5).map((i) => (
+                  {commodity.inventory.slice(0, 5).map((i) => (
                     <tr key={i.id} className="border-b last:border-0">
                       <td className="py-2 px-3">{i.warehouse}</td>
                       <td className="py-2 px-3">{i.quantity}</td>
@@ -270,7 +301,7 @@ export default function CommodityDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {commodity.contracts.slice(0,5).map((c) => (
+                  {commodity.contracts.slice(0, 5).map((c) => (
                     <tr key={c.id} className="border-b last:border-0">
                       <td className="py-2 px-3">{c.counterparty.name}</td>
                       <td className="py-2 px-3">{c.quantity}</td>
@@ -300,7 +331,7 @@ export default function CommodityDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {commodity.shipments.slice(0,5).map((s) => (
+                  {commodity.shipments.slice(0, 5).map((s) => (
                     <tr key={s.id} className="border-b last:border-0">
                       <td className="py-2 px-3">{s.trackingNumber}</td>
                       <td className="py-2 px-3">{s.quantity}</td>
@@ -328,4 +359,3 @@ export default function CommodityDetailsPage() {
     </div>
   );
 }
-

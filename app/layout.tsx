@@ -1,13 +1,14 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
-import { QueryProvider } from '@/components/providers/query-provider';
-import { cn } from '@/lib/utils';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: 'CommodiTrade - Commodity Trading Platform',
-  description: 'Professional commodity trading and inventory management platform',
+  title: "CommodiTrade - Commodity Trading Platform",
+  description:
+    "Professional commodity trading and inventory management platform",
 };
 
 export default function RootLayout({
@@ -17,15 +18,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn('min-h-screen bg-background font-sans antialiased')}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <QueryProvider>
           <div className="flex h-screen bg-muted">
             <Sidebar />
             <div className="flex flex-col flex-1 overflow-hidden">
               <Header />
-              <main className="flex-1 overflow-y-auto p-6">
-                {children}
-              </main>
+              <main className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
           </div>
         </QueryProvider>

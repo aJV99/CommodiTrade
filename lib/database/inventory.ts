@@ -1,10 +1,10 @@
 "use server";
-import { prisma } from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 import {
   InventoryMovementReferenceType,
   InventoryMovementType,
   Prisma,
-} from '@prisma/client';
+} from "@prisma/client";
 import {
   inventoryCreateSchema,
   inventoryUpdateSchema,
@@ -12,7 +12,7 @@ import {
   InventoryMovementValues,
   InventoryFormValues,
   InventoryUpdateValues,
-} from '@/lib/validation/inventory';
+} from "@/lib/validation/inventory";
 
 export type CreateInventoryData = InventoryFormValues;
 export type UpdateInventoryData = InventoryUpdateValues;
@@ -29,7 +29,7 @@ export async function createInventoryItem(data: CreateInventoryData) {
       });
 
       if (!commodity) {
-        throw new Error('Commodity not found');
+        throw new Error("Commodity not found");
       }
 
       const where = {
@@ -70,7 +70,7 @@ export async function createInventoryItem(data: CreateInventoryData) {
             type: InventoryMovementType.IN,
             quantityDelta: parsed.quantity,
             resultingQuantity: newQuantity,
-            reason: 'Lot increased via manual creation',
+            reason: "Lot increased via manual creation",
             referenceType: InventoryMovementReferenceType.MANUAL,
             unitCost: parsed.costBasis,
             unitMarketValue: parsed.marketValue,
@@ -94,7 +94,7 @@ export async function createInventoryItem(data: CreateInventoryData) {
           type: InventoryMovementType.IN,
           quantityDelta: parsed.quantity,
           resultingQuantity: parsed.quantity,
-          reason: 'Initial lot creation',
+          reason: "Initial lot creation",
           referenceType: InventoryMovementReferenceType.MANUAL,
           unitCost: parsed.costBasis,
           unitMarketValue: parsed.marketValue,
@@ -104,12 +104,12 @@ export async function createInventoryItem(data: CreateInventoryData) {
       return inventoryItem;
     });
   } catch (error) {
-    console.error('Error creating inventory item:', error);
+    console.error("Error creating inventory item:", error);
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      error.code === "P2002"
     ) {
-      throw new Error('Lot already exists—try adjusting stock instead.');
+      throw new Error("Lot already exists—try adjusting stock instead.");
     }
     throw error;
   }
@@ -128,14 +128,21 @@ export async function getInventoryItems(filters?: {
     const where: any = {};
 
     if (filters?.commodityId) where.commodityId = filters.commodityId;
-    if (filters?.warehouse) where.warehouse = { contains: filters.warehouse, mode: 'insensitive' };
-    if (filters?.location) where.location = { contains: filters.location, mode: 'insensitive' };
+    if (filters?.warehouse)
+      where.warehouse = { contains: filters.warehouse, mode: "insensitive" };
+    if (filters?.location)
+      where.location = { contains: filters.location, mode: "insensitive" };
     if (filters?.quality) where.quality = filters.quality;
-    
-    if (filters?.minQuantity !== undefined || filters?.maxQuantity !== undefined) {
+
+    if (
+      filters?.minQuantity !== undefined ||
+      filters?.maxQuantity !== undefined
+    ) {
       where.quantity = {};
-      if (filters.minQuantity !== undefined) where.quantity.gte = filters.minQuantity;
-      if (filters.maxQuantity !== undefined) where.quantity.lte = filters.maxQuantity;
+      if (filters.minQuantity !== undefined)
+        where.quantity.gte = filters.minQuantity;
+      if (filters.maxQuantity !== undefined)
+        where.quantity.lte = filters.maxQuantity;
     }
 
     const inventoryItems = await prisma.inventoryItem.findMany({
@@ -144,15 +151,15 @@ export async function getInventoryItems(filters?: {
         commodity: true,
       },
       orderBy: [
-        { commodity: { name: 'asc' } },
-        { warehouse: 'asc' },
-        { location: 'asc' }
-      ]
+        { commodity: { name: "asc" } },
+        { warehouse: "asc" },
+        { location: "asc" },
+      ],
     });
 
     return inventoryItems;
   } catch (error) {
-    console.error('Error fetching inventory items:', error);
+    console.error("Error fetching inventory items:", error);
     throw error;
   }
 }
@@ -164,22 +171,25 @@ export async function getInventoryItemById(id: string) {
       where: { id },
       include: {
         commodity: true,
-      }
+      },
     });
 
     if (!inventoryItem) {
-      throw new Error('Inventory item not found');
+      throw new Error("Inventory item not found");
     }
 
     return inventoryItem;
   } catch (error) {
-    console.error('Error fetching inventory item:', error);
+    console.error("Error fetching inventory item:", error);
     throw error;
   }
 }
 
 // Update inventory item
-export async function updateInventoryItem(id: string, data: UpdateInventoryData) {
+export async function updateInventoryItem(
+  id: string,
+  data: UpdateInventoryData,
+) {
   try {
     const parsed = inventoryUpdateSchema.parse(data);
 
@@ -196,7 +206,7 @@ export async function updateInventoryItem(id: string, data: UpdateInventoryData)
 
     return updatedItem;
   } catch (error) {
-    console.error('Error updating inventory item:', error);
+    console.error("Error updating inventory item:", error);
     throw error;
   }
 }
@@ -208,12 +218,12 @@ export async function deleteInventoryItem(id: string) {
       where: { id },
       include: {
         commodity: true,
-      }
+      },
     });
 
     return deletedItem;
   } catch (error) {
-    console.error('Error deleting inventory item:', error);
+    console.error("Error deleting inventory item:", error);
     throw error;
   }
 }
@@ -229,43 +239,43 @@ async function applyInventoryMovement(
   });
 
   if (!inventoryItem) {
-    throw new Error('Inventory item not found');
+    throw new Error("Inventory item not found");
   }
 
   let newQuantity = inventoryItem.quantity;
   let quantityDelta = 0;
 
   switch (parsed.type) {
-    case 'IN':
+    case "IN":
       newQuantity += parsed.quantity;
       quantityDelta = parsed.quantity;
       break;
-    case 'OUT':
+    case "OUT":
       newQuantity -= parsed.quantity;
       quantityDelta = -parsed.quantity;
       if (newQuantity < 0) {
-        throw new Error('Insufficient inventory quantity');
+        throw new Error("Insufficient inventory quantity");
       }
       break;
-    case 'ADJUSTMENT':
+    case "ADJUSTMENT":
       quantityDelta = parsed.quantity - inventoryItem.quantity;
       newQuantity = parsed.quantity;
       break;
     default:
-      throw new Error('Invalid movement type');
+      throw new Error("Invalid movement type");
   }
 
   if (newQuantity < 0) {
-    throw new Error('Resulting quantity cannot be negative');
+    throw new Error("Resulting quantity cannot be negative");
   }
 
   let costBasis = inventoryItem.costBasis;
-  if (parsed.type === 'IN' && parsed.unitCost !== undefined) {
+  if (parsed.type === "IN" && parsed.unitCost !== undefined) {
     const totalCost =
       inventoryItem.quantity * inventoryItem.costBasis +
       parsed.quantity * parsed.unitCost;
     costBasis = newQuantity > 0 ? totalCost / newQuantity : parsed.unitCost;
-  } else if (parsed.type === 'ADJUSTMENT' && parsed.unitCost !== undefined) {
+  } else if (parsed.type === "ADJUSTMENT" && parsed.unitCost !== undefined) {
     costBasis = parsed.unitCost;
   }
 
@@ -322,7 +332,7 @@ export async function processInventoryMovement(
       applyInventoryMovement(transaction, parsed),
     );
   } catch (error) {
-    console.error('Error processing inventory movement:', error);
+    console.error("Error processing inventory movement:", error);
     throw error;
   }
 }
@@ -334,13 +344,13 @@ export async function getInventoryMovementsForItem(
   try {
     const movements = await prisma.inventoryMovement.findMany({
       where: { inventoryId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: options?.limit ?? 50,
     });
 
     return movements;
   } catch (error) {
-    console.error('Error fetching inventory movements:', error);
+    console.error("Error fetching inventory movements:", error);
     throw error;
   }
 }
@@ -355,14 +365,16 @@ export async function getInventoryValuation(filters?: {
     const where: any = {};
 
     if (filters?.commodityId) where.commodityId = filters.commodityId;
-    if (filters?.warehouse) where.warehouse = { contains: filters.warehouse, mode: 'insensitive' };
-    if (filters?.location) where.location = { contains: filters.location, mode: 'insensitive' };
+    if (filters?.warehouse)
+      where.warehouse = { contains: filters.warehouse, mode: "insensitive" };
+    if (filters?.location)
+      where.location = { contains: filters.location, mode: "insensitive" };
 
     const inventoryItems = await prisma.inventoryItem.findMany({
       where,
       include: {
         commodity: true,
-      }
+      },
     });
 
     const commodityMap = new Map<
@@ -473,7 +485,7 @@ export async function getInventoryValuation(filters?: {
           : undefined,
     };
   } catch (error) {
-    console.error('Error calculating inventory valuation:', error);
+    console.error("Error calculating inventory valuation:", error);
     throw error;
   }
 }
@@ -484,38 +496,41 @@ export async function getLowStockAlerts(threshold: number = 100) {
     const lowStockItems = await prisma.inventoryItem.findMany({
       where: {
         quantity: {
-          lte: threshold
-        }
+          lte: threshold,
+        },
       },
       include: {
         commodity: true,
       },
       orderBy: {
-        quantity: 'asc'
-      }
+        quantity: "asc",
+      },
     });
 
     return lowStockItems;
   } catch (error) {
-    console.error('Error fetching low stock alerts:', error);
+    console.error("Error fetching low stock alerts:", error);
     throw error;
   }
 }
 
 // Update market values for all inventory items of a specific commodity
-export async function updateMarketValues(commodityId: string, newMarketValue: number) {
+export async function updateMarketValues(
+  commodityId: string,
+  newMarketValue: number,
+) {
   try {
     const updatedItems = await prisma.inventoryItem.updateMany({
       where: { commodityId },
       data: {
         marketValue: newMarketValue,
         lastUpdated: new Date(),
-      }
+      },
     });
 
     return updatedItems;
   } catch (error) {
-    console.error('Error updating market values:', error);
+    console.error("Error updating market values:", error);
     throw error;
   }
 }

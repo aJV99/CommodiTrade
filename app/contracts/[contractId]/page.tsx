@@ -1,17 +1,36 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import type { Prisma } from '@prisma/client';
-import { differenceInCalendarDays, format, formatDistanceToNow } from 'date-fns';
-import { AlertCircle, ArrowLeft, ClipboardEdit, DollarSign, Factory, Gauge, Shield, TrendingUp } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import type { Prisma } from "@prisma/client";
+import {
+  differenceInCalendarDays,
+  format,
+  formatDistanceToNow,
+} from "date-fns";
+import {
+  AlertCircle,
+  ArrowLeft,
+  ClipboardEdit,
+  DollarSign,
+  Factory,
+  Gauge,
+  Shield,
+  TrendingUp,
+} from "lucide-react";
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +41,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -32,15 +51,15 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/breadcrumb";
+import { useToast } from "@/hooks/use-toast";
 import {
   useCancelContract,
   useContract,
   useExecuteContract,
   useUpdateContract,
-} from '@/lib/hooks/use-contracts';
-import { useInventory } from '@/lib/hooks/use-inventory';
+} from "@/lib/hooks/use-contracts";
+import { useInventory } from "@/lib/hooks/use-inventory";
 
 type ContractWithRelations = Prisma.ContractGetPayload<{
   include: { commodity: true; counterparty: true };
@@ -50,32 +69,32 @@ type InventoryItemWithCommodity = Prisma.InventoryItemGetPayload<{
   include: { commodity: true };
 }>;
 
-const statusLabels: Record<ContractWithRelations['status'], string> = {
-  ACTIVE: 'Active',
-  COMPLETED: 'Completed',
-  CANCELLED: 'Cancelled',
+const statusLabels: Record<ContractWithRelations["status"], string> = {
+  ACTIVE: "Active",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
 };
 
-const typeLabels: Record<ContractWithRelations['type'], string> = {
-  PURCHASE: 'Purchase',
-  SALE: 'Sale',
+const typeLabels: Record<ContractWithRelations["type"], string> = {
+  PURCHASE: "Purchase",
+  SALE: "Sale",
 };
 
-const statusStyles: Record<ContractWithRelations['status'], string> = {
-  ACTIVE: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  COMPLETED: 'bg-blue-100 text-blue-800 border-blue-200',
-  CANCELLED: 'bg-rose-100 text-rose-800 border-rose-200',
+const statusStyles: Record<ContractWithRelations["status"], string> = {
+  ACTIVE: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  COMPLETED: "bg-blue-100 text-blue-800 border-blue-200",
+  CANCELLED: "bg-rose-100 text-rose-800 border-rose-200",
 };
 
-const typeStyles: Record<ContractWithRelations['type'], string> = {
-  PURCHASE: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-  SALE: 'bg-amber-50 text-amber-600 border-amber-200',
+const typeStyles: Record<ContractWithRelations["type"], string> = {
+  PURCHASE: "bg-indigo-50 text-indigo-600 border-indigo-200",
+  SALE: "bg-amber-50 text-amber-600 border-amber-200",
 };
 
 const formatCurrency = (value: number, options?: Intl.NumberFormatOptions) =>
   new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
     ...options,
@@ -85,20 +104,20 @@ const formatDateDisplay = (value: string | Date) => {
   const parsed = new Date(value);
 
   if (Number.isNaN(parsed.getTime())) {
-    return '—';
+    return "—";
   }
 
-  return format(parsed, 'PPP');
+  return format(parsed, "PPP");
 };
 
 const formatDateInput = (date: Date) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return localDate.toISOString().split('T')[0];
+  return localDate.toISOString().split("T")[0];
 };
 
 const toInputString = (value: string | Date) => {
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? '' : formatDateInput(parsed);
+  return Number.isNaN(parsed.getTime()) ? "" : formatDateInput(parsed);
 };
 
 export default function ContractDetailPage() {
@@ -107,16 +126,15 @@ export default function ContractDetailPage() {
   const { toast } = useToast();
 
   const contractIdParam = params?.contractId;
-  const contractId = Array.isArray(contractIdParam) ? contractIdParam[0] : contractIdParam;
+  const contractId = Array.isArray(contractIdParam)
+    ? contractIdParam[0]
+    : contractIdParam;
 
-  const {
-    data: contract,
-    isLoading,
-    isError,
-    error,
-  } = useContract(contractId);
+  const { data: contract, isLoading, isError, error } = useContract(contractId);
 
-  const commodityFilter = contract ? { commodityId: contract.commodityId } : undefined;
+  const commodityFilter = contract
+    ? { commodityId: contract.commodityId }
+    : undefined;
   const { data: inventoryItems = [] } = useInventory(commodityFilter, {
     enabled: Boolean(contract?.commodityId),
   });
@@ -130,23 +148,23 @@ export default function ContractDetailPage() {
   const [cancelError, setCancelError] = useState<string | null>(null);
 
   const [editForm, setEditForm] = useState({
-    quantity: '',
-    price: '',
-    startDate: '',
-    endDate: '',
-    deliveryTerms: '',
-    paymentTerms: '',
+    quantity: "",
+    price: "",
+    startDate: "",
+    endDate: "",
+    deliveryTerms: "",
+    paymentTerms: "",
   });
 
   const [executionForm, setExecutionForm] = useState({
-    quantity: '',
+    quantity: "",
     executionDate: formatDateInput(new Date()),
-    tradeId: '',
-    notes: '',
+    tradeId: "",
+    notes: "",
   });
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     if (contract) {
@@ -162,9 +180,9 @@ export default function ContractDetailPage() {
       setExecutionForm((prev) => ({
         ...prev,
         executionDate: formatDateInput(new Date()),
-        quantity: '',
-        tradeId: '',
-        notes: '',
+        quantity: "",
+        tradeId: "",
+        notes: "",
       }));
     }
   }, [contract]);
@@ -172,7 +190,7 @@ export default function ContractDetailPage() {
   const availableInventory = useMemo(() => {
     return (inventoryItems as InventoryItemWithCommodity[]).reduce(
       (sum, item) => sum + item.quantity,
-      0
+      0,
     );
   }, [inventoryItems]);
 
@@ -187,7 +205,7 @@ export default function ContractDetailPage() {
     ? creditLimit > 0
       ? `${formatCurrency(contract.totalValue)} (${((contract.totalValue / creditLimit) * 100).toFixed(1)}% of limit)`
       : `${formatCurrency(contract.totalValue)} (no credit limit set)`
-    : '';
+    : "";
 
   const daysToStart = contract
     ? differenceInCalendarDays(new Date(contract.startDate), new Date())
@@ -197,7 +215,9 @@ export default function ContractDetailPage() {
     ? differenceInCalendarDays(new Date(contract.endDate), new Date())
     : 0;
 
-  const handleUpdateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (!contract || updateContractMutation.isPending) {
       return;
@@ -210,7 +230,7 @@ export default function ContractDetailPage() {
 
     const parsedQuantity = Number(editForm.quantity);
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
-      setUpdateError('Quantity must be a positive number.');
+      setUpdateError("Quantity must be a positive number.");
       return;
     }
     if (parsedQuantity !== contract.quantity) {
@@ -220,7 +240,7 @@ export default function ContractDetailPage() {
 
     const parsedPrice = Number(editForm.price);
     if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      setUpdateError('Price must be a positive number.');
+      setUpdateError("Price must be a positive number.");
       return;
     }
     if (parsedPrice !== contract.price) {
@@ -229,11 +249,11 @@ export default function ContractDetailPage() {
     }
 
     if (!editForm.startDate) {
-      setUpdateError('Start date is required.');
+      setUpdateError("Start date is required.");
       return;
     }
     if (!editForm.endDate) {
-      setUpdateError('End date is required.');
+      setUpdateError("End date is required.");
       return;
     }
 
@@ -241,12 +261,12 @@ export default function ContractDetailPage() {
     const endDate = new Date(editForm.endDate);
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      setUpdateError('Please provide valid dates.');
+      setUpdateError("Please provide valid dates.");
       return;
     }
 
     if (endDate <= startDate) {
-      setUpdateError('End date must be after the start date.');
+      setUpdateError("End date must be after the start date.");
       return;
     }
 
@@ -264,7 +284,7 @@ export default function ContractDetailPage() {
 
     const deliveryTerms = editForm.deliveryTerms.trim();
     if (!deliveryTerms) {
-      setUpdateError('Delivery terms cannot be empty.');
+      setUpdateError("Delivery terms cannot be empty.");
       return;
     }
     if (deliveryTerms !== contract.deliveryTerms) {
@@ -274,7 +294,7 @@ export default function ContractDetailPage() {
 
     const paymentTerms = editForm.paymentTerms.trim();
     if (!paymentTerms) {
-      setUpdateError('Payment terms cannot be empty.');
+      setUpdateError("Payment terms cannot be empty.");
       return;
     }
     if (paymentTerms !== contract.paymentTerms) {
@@ -283,7 +303,7 @@ export default function ContractDetailPage() {
     }
 
     if (!hasChanges) {
-      setUpdateError('No changes detected.');
+      setUpdateError("No changes detected.");
       return;
     }
 
@@ -294,19 +314,21 @@ export default function ContractDetailPage() {
       });
 
       toast({
-        title: 'Contract updated',
-        description: 'The commercial terms were saved successfully.',
+        title: "Contract updated",
+        description: "The commercial terms were saved successfully.",
       });
     } catch (mutationError) {
       const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'Failed to update contract. Please try again.';
+          : "Failed to update contract. Please try again.";
       setUpdateError(message);
     }
   };
 
-  const handleExecuteSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleExecuteSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (!contract || executeContractMutation.isPending) {
       return;
@@ -316,23 +338,23 @@ export default function ContractDetailPage() {
 
     const parsedQuantity = Number(executionForm.quantity);
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
-      setExecuteError('Execution quantity must be a positive number.');
+      setExecuteError("Execution quantity must be a positive number.");
       return;
     }
 
     if (parsedQuantity > contract.remaining) {
-      setExecuteError('Quantity exceeds the remaining balance.');
+      setExecuteError("Quantity exceeds the remaining balance.");
       return;
     }
 
     if (!executionForm.executionDate) {
-      setExecuteError('Execution date is required.');
+      setExecuteError("Execution date is required.");
       return;
     }
 
     const executionDate = new Date(executionForm.executionDate);
     if (Number.isNaN(executionDate.getTime())) {
-      setExecuteError('Please provide a valid execution date.');
+      setExecuteError("Please provide a valid execution date.");
       return;
     }
 
@@ -346,21 +368,21 @@ export default function ContractDetailPage() {
       });
 
       toast({
-        title: 'Contract tranche executed',
+        title: "Contract tranche executed",
         description: `Booked ${Math.round(parsedQuantity).toLocaleString()} units against this contract.`,
       });
 
       setExecutionForm({
-        quantity: '',
+        quantity: "",
         executionDate: formatDateInput(new Date()),
-        tradeId: '',
-        notes: '',
+        tradeId: "",
+        notes: "",
       });
     } catch (mutationError) {
       const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'Failed to execute contract. Please try again.';
+          : "Failed to execute contract. Please try again.";
       setExecuteError(message);
     }
   };
@@ -379,17 +401,18 @@ export default function ContractDetailPage() {
       });
 
       toast({
-        title: 'Contract cancelled',
-        description: 'The remaining balance will no longer be available for execution.',
+        title: "Contract cancelled",
+        description:
+          "The remaining balance will no longer be available for execution.",
       });
 
       setCancelDialogOpen(false);
-      setCancelReason('');
+      setCancelReason("");
     } catch (mutationError) {
       const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'Unable to cancel contract. Please try again.';
+          : "Unable to cancel contract. Please try again.";
       setCancelError(message);
     }
   };
@@ -398,8 +421,12 @@ export default function ContractDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center space-y-2 text-center">
         <AlertCircle className="h-8 w-8 text-amber-500" />
-        <p className="text-lg font-semibold text-slate-900">No contract selected</p>
-        <p className="text-sm text-slate-600">Provide a contract identifier to view its details.</p>
+        <p className="text-lg font-semibold text-slate-900">
+          No contract selected
+        </p>
+        <p className="text-sm text-slate-600">
+          Provide a contract identifier to view its details.
+        </p>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/contracts">Back to contracts</Link>
         </Button>
@@ -416,13 +443,16 @@ export default function ContractDetailPage() {
   }
 
   if (isError) {
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    const message =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
 
     return (
       <div className="flex h-full flex-col items-center justify-center space-y-3 text-center">
         <AlertCircle className="h-10 w-10 text-rose-500" />
         <div>
-          <p className="text-lg font-semibold text-slate-900">Unable to load contract</p>
+          <p className="text-lg font-semibold text-slate-900">
+            Unable to load contract
+          </p>
           <p className="text-sm text-slate-600">{message}</p>
         </div>
         <Button variant="outline" onClick={() => router.refresh()}>
@@ -436,8 +466,12 @@ export default function ContractDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center space-y-2 text-center">
         <AlertCircle className="h-8 w-8 text-amber-500" />
-        <p className="text-lg font-semibold text-slate-900">Contract not found</p>
-        <p className="text-sm text-slate-600">The contract may have been removed or you may not have access.</p>
+        <p className="text-lg font-semibold text-slate-900">
+          Contract not found
+        </p>
+        <p className="text-sm text-slate-600">
+          The contract may have been removed or you may not have access.
+        </p>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/contracts">Back to contracts</Link>
         </Button>
@@ -470,19 +504,34 @@ export default function ContractDetailPage() {
           </Button>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className={`${typeStyles[contract.type]} border`}>{typeLabels[contract.type]}</Badge>
-              <Badge className={`${statusStyles[contract.status]} border`}>{statusLabels[contract.status]}</Badge>
+              <Badge className={`${typeStyles[contract.type]} border`}>
+                {typeLabels[contract.type]}
+              </Badge>
+              <Badge className={`${statusStyles[contract.status]} border`}>
+                {statusLabels[contract.status]}
+              </Badge>
             </div>
             <h1 className="mt-3 text-3xl font-bold text-slate-900">
               {contract.commodity.name} · {contract.counterparty.name}
             </h1>
-            <p className="mt-1 text-sm text-slate-600">Contract ID: {contract.id}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Contract ID: {contract.id}
+            </p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm font-medium text-slate-500">Total Contract Value</p>
-          <p className="text-3xl font-semibold text-slate-900">{formatCurrency(contract.totalValue)}</p>
-          <p className="text-xs text-slate-500">Last updated {formatDistanceToNow(new Date(contract.updatedAt), { addSuffix: true })}</p>
+          <p className="text-sm font-medium text-slate-500">
+            Total Contract Value
+          </p>
+          <p className="text-3xl font-semibold text-slate-900">
+            {formatCurrency(contract.totalValue)}
+          </p>
+          <p className="text-xs text-slate-500">
+            Last updated{" "}
+            {formatDistanceToNow(new Date(contract.updatedAt), {
+              addSuffix: true,
+            })}
+          </p>
         </div>
       </div>
 
@@ -497,7 +546,8 @@ export default function ContractDetailPage() {
             <Progress value={progressPercent} />
             <div className="mt-2 flex flex-wrap items-center justify-between text-sm text-slate-600">
               <span>
-                {contract.executed.toLocaleString()} executed · {contract.remaining.toLocaleString()} remaining
+                {contract.executed.toLocaleString()} executed ·{" "}
+                {contract.remaining.toLocaleString()} remaining
               </span>
               <span>{progressPercent.toFixed(0)}% complete</span>
             </div>
@@ -520,7 +570,7 @@ export default function ContractDetailPage() {
             />
             <SummaryStat
               label="Days to expiry"
-              value={daysToEnd >= 0 ? `${daysToEnd} days` : 'Past due'}
+              value={daysToEnd >= 0 ? `${daysToEnd} days` : "Past due"}
               icon={<AlertCircle className="h-4 w-4 text-rose-500" />}
             />
           </div>
@@ -531,9 +581,12 @@ export default function ContractDetailPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader className="space-y-1">
-              <CardTitle className="text-lg font-semibold text-slate-800">Commercial terms</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-800">
+                Commercial terms
+              </CardTitle>
               <p className="text-sm text-slate-500">
-                Keep contract commitments aligned with the negotiated schedule and economics.
+                Keep contract commitments aligned with the negotiated schedule
+                and economics.
               </p>
             </CardHeader>
             <CardContent>
@@ -543,17 +596,26 @@ export default function ContractDetailPage() {
                     <Input
                       value={editForm.quantity}
                       onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, quantity: event.target.value }))
+                        setEditForm((prev) => ({
+                          ...prev,
+                          quantity: event.target.value,
+                        }))
                       }
                       inputMode="numeric"
                       required
                     />
                   </Field>
-                  <Field label="Unit price" description="Contract currency per unit">
+                  <Field
+                    label="Unit price"
+                    description="Contract currency per unit"
+                  >
                     <Input
                       value={editForm.price}
                       onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, price: event.target.value }))
+                        setEditForm((prev) => ({
+                          ...prev,
+                          price: event.target.value,
+                        }))
                       }
                       inputMode="decimal"
                       required
@@ -566,7 +628,10 @@ export default function ContractDetailPage() {
                       type="date"
                       value={editForm.startDate}
                       onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, startDate: event.target.value }))
+                        setEditForm((prev) => ({
+                          ...prev,
+                          startDate: event.target.value,
+                        }))
                       }
                       required
                     />
@@ -577,7 +642,10 @@ export default function ContractDetailPage() {
                       value={editForm.endDate}
                       min={editForm.startDate}
                       onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, endDate: event.target.value }))
+                        setEditForm((prev) => ({
+                          ...prev,
+                          endDate: event.target.value,
+                        }))
                       }
                       required
                     />
@@ -588,7 +656,10 @@ export default function ContractDetailPage() {
                     <Textarea
                       value={editForm.deliveryTerms}
                       onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, deliveryTerms: event.target.value }))
+                        setEditForm((prev) => ({
+                          ...prev,
+                          deliveryTerms: event.target.value,
+                        }))
                       }
                       rows={3}
                       required
@@ -598,7 +669,10 @@ export default function ContractDetailPage() {
                     <Textarea
                       value={editForm.paymentTerms}
                       onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, paymentTerms: event.target.value }))
+                        setEditForm((prev) => ({
+                          ...prev,
+                          paymentTerms: event.target.value,
+                        }))
                       }
                       rows={3}
                       required
@@ -610,10 +684,19 @@ export default function ContractDetailPage() {
                 ) : null}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-slate-500">
-                    Created {formatDateDisplay(contract.createdAt)} · Last updated {formatDateDisplay(contract.updatedAt)}
+                    Created {formatDateDisplay(contract.createdAt)} · Last
+                    updated {formatDateDisplay(contract.updatedAt)}
                   </p>
-                  <Button type="submit" disabled={updateContractMutation.isPending || contract.status === 'CANCELLED'}>
-                    {updateContractMutation.isPending ? 'Saving…' : 'Save changes'}
+                  <Button
+                    type="submit"
+                    disabled={
+                      updateContractMutation.isPending ||
+                      contract.status === "CANCELLED"
+                    }
+                  >
+                    {updateContractMutation.isPending
+                      ? "Saving…"
+                      : "Save changes"}
                   </Button>
                 </div>
               </form>
@@ -622,9 +705,12 @@ export default function ContractDetailPage() {
 
           <Card>
             <CardHeader className="space-y-1">
-              <CardTitle className="text-lg font-semibold text-slate-800">Lifecycle analytics</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-800">
+                Lifecycle analytics
+              </CardTitle>
               <p className="text-sm text-slate-500">
-                Understand how this agreement is progressing relative to plan and the rest of your book.
+                Understand how this agreement is progressing relative to plan
+                and the rest of your book.
               </p>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -641,7 +727,11 @@ export default function ContractDetailPage() {
               <AnalyticsItem
                 label="Contract window"
                 value={`${formatDateDisplay(contract.startDate)} → ${formatDateDisplay(contract.endDate)}`}
-                caption={daysToStart > 0 ? `${daysToStart} days until start` : 'In effect'}
+                caption={
+                  daysToStart > 0
+                    ? `${daysToStart} days until start`
+                    : "In effect"
+                }
               />
               <AnalyticsItem
                 label="Counterparty exposure"
@@ -655,13 +745,18 @@ export default function ContractDetailPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-semibold text-slate-800">Actions</CardTitle>
+              <CardTitle className="text-base font-semibold text-slate-800">
+                Actions
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <section>
-                <h3 className="text-sm font-semibold text-slate-700">Execute tranche</h3>
+                <h3 className="text-sm font-semibold text-slate-700">
+                  Execute tranche
+                </h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Book a delivery or lifting against this contract. Inventory and linked trades will update automatically.
+                  Book a delivery or lifting against this contract. Inventory
+                  and linked trades will update automatically.
                 </p>
                 <form className="mt-3 space-y-3" onSubmit={handleExecuteSubmit}>
                   <div className="grid gap-3">
@@ -669,7 +764,10 @@ export default function ContractDetailPage() {
                       placeholder="Quantity"
                       value={executionForm.quantity}
                       onChange={(event) =>
-                        setExecutionForm((prev) => ({ ...prev, quantity: event.target.value }))
+                        setExecutionForm((prev) => ({
+                          ...prev,
+                          quantity: event.target.value,
+                        }))
                       }
                       inputMode="numeric"
                       required
@@ -678,7 +776,10 @@ export default function ContractDetailPage() {
                       type="date"
                       value={executionForm.executionDate}
                       onChange={(event) =>
-                        setExecutionForm((prev) => ({ ...prev, executionDate: event.target.value }))
+                        setExecutionForm((prev) => ({
+                          ...prev,
+                          executionDate: event.target.value,
+                        }))
                       }
                       required
                     />
@@ -686,14 +787,20 @@ export default function ContractDetailPage() {
                       placeholder="Related trade ID (optional)"
                       value={executionForm.tradeId}
                       onChange={(event) =>
-                        setExecutionForm((prev) => ({ ...prev, tradeId: event.target.value }))
+                        setExecutionForm((prev) => ({
+                          ...prev,
+                          tradeId: event.target.value,
+                        }))
                       }
                     />
                     <Textarea
                       placeholder="Notes for operations (optional)"
                       value={executionForm.notes}
                       onChange={(event) =>
-                        setExecutionForm((prev) => ({ ...prev, notes: event.target.value }))
+                        setExecutionForm((prev) => ({
+                          ...prev,
+                          notes: event.target.value,
+                        }))
                       }
                       rows={3}
                     />
@@ -704,9 +811,14 @@ export default function ContractDetailPage() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={executeContractMutation.isPending || contract.status !== 'ACTIVE'}
+                    disabled={
+                      executeContractMutation.isPending ||
+                      contract.status !== "ACTIVE"
+                    }
                   >
-                    {executeContractMutation.isPending ? 'Executing…' : 'Execute tranche'}
+                    {executeContractMutation.isPending
+                      ? "Executing…"
+                      : "Execute tranche"}
                   </Button>
                 </form>
               </section>
@@ -715,18 +827,27 @@ export default function ContractDetailPage() {
 
               <section className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-700">Cancel remaining volume</h3>
+                  <h3 className="text-sm font-semibold text-slate-700">
+                    Cancel remaining volume
+                  </h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    Cancelling will freeze the contract and release any remaining commitment back to capacity planning.
+                    Cancelling will freeze the contract and release any
+                    remaining commitment back to capacity planning.
                   </p>
                 </div>
-                <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                <AlertDialog
+                  open={cancelDialogOpen}
+                  onOpenChange={setCancelDialogOpen}
+                >
                   <AlertDialogTrigger asChild>
                     <Button
                       type="button"
                       variant="destructive"
                       className="w-full"
-                      disabled={contract.status !== 'ACTIVE' || cancelContractMutation.isPending}
+                      disabled={
+                        contract.status !== "ACTIVE" ||
+                        cancelContractMutation.isPending
+                      }
                     >
                       Cancel contract
                     </Button>
@@ -735,21 +856,30 @@ export default function ContractDetailPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Cancel this contract?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will mark the agreement as cancelled and prevent further execution. Provide context for audit
-                        trails if needed.
+                        This will mark the agreement as cancelled and prevent
+                        further execution. Provide context for audit trails if
+                        needed.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-2">
                       <Textarea
                         placeholder="Reason for cancellation (optional)"
                         value={cancelReason}
-                        onChange={(event) => setCancelReason(event.target.value)}
+                        onChange={(event) =>
+                          setCancelReason(event.target.value)
+                        }
                         rows={4}
                       />
-                      {cancelError ? <p className="text-sm text-rose-600">{cancelError}</p> : null}
+                      {cancelError ? (
+                        <p className="text-sm text-rose-600">{cancelError}</p>
+                      ) : null}
                     </div>
                     <AlertDialogFooter>
-                      <AlertDialogCancel disabled={cancelContractMutation.isPending}>Back</AlertDialogCancel>
+                      <AlertDialogCancel
+                        disabled={cancelContractMutation.isPending}
+                      >
+                        Back
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => {
                           void handleCancelContract();
@@ -757,7 +887,9 @@ export default function ContractDetailPage() {
                         className="bg-rose-600 text-white hover:bg-rose-700"
                         disabled={cancelContractMutation.isPending}
                       >
-                        {cancelContractMutation.isPending ? 'Cancelling…' : 'Confirm cancel'}
+                        {cancelContractMutation.isPending
+                          ? "Cancelling…"
+                          : "Confirm cancel"}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -769,9 +901,13 @@ export default function ContractDetailPage() {
           <Card>
             <CardHeader className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-800">
-                <Shield className="h-4 w-4 text-slate-600" /> Counterparty overview
+                <Shield className="h-4 w-4 text-slate-600" /> Counterparty
+                overview
               </CardTitle>
-              <p className="text-xs text-slate-500">Exposure context to gauge remaining credit and relationship health.</p>
+              <p className="text-xs text-slate-500">
+                Exposure context to gauge remaining credit and relationship
+                health.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <div className="flex justify-between">
@@ -789,7 +925,8 @@ export default function ContractDetailPage() {
               <div className="flex justify-between">
                 <span className="font-medium text-slate-700">Credit usage</span>
                 <span>
-                  {formatCurrency(contract.counterparty.creditUsed)} / {formatCurrency(contract.counterparty.creditLimit)}
+                  {formatCurrency(contract.counterparty.creditUsed)} /{" "}
+                  {formatCurrency(contract.counterparty.creditLimit)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -801,7 +938,7 @@ export default function ContractDetailPage() {
                 <span>
                   {contract.counterparty.lastTradeDate
                     ? formatDateDisplay(contract.counterparty.lastTradeDate)
-                    : '—'}
+                    : "—"}
                 </span>
               </div>
             </CardContent>
@@ -815,9 +952,12 @@ export default function ContractDetailPage() {
           <Card>
             <CardHeader className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-800">
-                <Factory className="h-4 w-4 text-slate-600" /> Commodity insights
+                <Factory className="h-4 w-4 text-slate-600" /> Commodity
+                insights
               </CardTitle>
-              <p className="text-xs text-slate-500">Market context and quality requirements for this agreement.</p>
+              <p className="text-xs text-slate-500">
+                Market context and quality requirements for this agreement.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <div className="flex justify-between">
@@ -829,7 +969,9 @@ export default function ContractDetailPage() {
                 <span>{contract.commodity.type}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-medium text-slate-700">Unit of measure</span>
+                <span className="font-medium text-slate-700">
+                  Unit of measure
+                </span>
                 <span>{contract.commodity.unit}</span>
               </div>
               <div className="flex justify-between">
@@ -844,8 +986,9 @@ export default function ContractDetailPage() {
               <div className="flex justify-between">
                 <span className="font-medium text-slate-700">Price change</span>
                 <span>
-                  {contract.commodity.priceChange >= 0 ? '+' : ''}
-                  {contract.commodity.priceChange.toFixed(2)} ({contract.commodity.priceChangePercent.toFixed(2)}%)
+                  {contract.commodity.priceChange >= 0 ? "+" : ""}
+                  {contract.commodity.priceChange.toFixed(2)} (
+                  {contract.commodity.priceChangePercent.toFixed(2)}%)
                 </span>
               </div>
             </CardContent>
@@ -853,26 +996,36 @@ export default function ContractDetailPage() {
 
           <Card>
             <CardHeader className="space-y-1">
-              <CardTitle className="text-base font-semibold text-slate-800">Operational impact</CardTitle>
-              <p className="text-xs text-slate-500">Understand inventory availability before booking more volume.</p>
+              <CardTitle className="text-base font-semibold text-slate-800">
+                Operational impact
+              </CardTitle>
+              <p className="text-xs text-slate-500">
+                Understand inventory availability before booking more volume.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <div className="flex justify-between">
-                <span className="font-medium text-slate-700">On-hand inventory</span>
+                <span className="font-medium text-slate-700">
+                  On-hand inventory
+                </span>
                 <span>
-                  {availableInventory.toLocaleString()} {contract.commodity.unit}
+                  {availableInventory.toLocaleString()}{" "}
+                  {contract.commodity.unit}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="font-medium text-slate-700">Remaining contract balance</span>
+                <span className="font-medium text-slate-700">
+                  Remaining contract balance
+                </span>
                 <span>
-                  {contract.remaining.toLocaleString()} {contract.commodity.unit}
+                  {contract.remaining.toLocaleString()}{" "}
+                  {contract.commodity.unit}
                 </span>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-                {contract.type === 'SALE'
-                  ? 'Ensure inventory covers future drawdowns before executing additional sales.'
-                  : 'Executing purchase tranches will increase on-hand inventory at the contract delivery location.'}
+                {contract.type === "SALE"
+                  ? "Ensure inventory covers future drawdowns before executing additional sales."
+                  : "Executing purchase tranches will increase on-hand inventory at the contract delivery location."}
               </div>
             </CardContent>
           </Card>
@@ -892,7 +1045,9 @@ function Field({ label, description, children }: FieldProps) {
   return (
     <label className="flex flex-col gap-1 text-sm text-slate-600">
       <span className="font-medium text-slate-700">{label}</span>
-      {description ? <span className="text-xs text-slate-500">{description}</span> : null}
+      {description ? (
+        <span className="text-xs text-slate-500">{description}</span>
+      ) : null}
       {children}
     </label>
   );

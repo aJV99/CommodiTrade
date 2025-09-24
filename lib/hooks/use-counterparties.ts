@@ -1,15 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  getCounterparties, 
-  createCounterparty, 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getCounterparties,
+  createCounterparty,
   updateCounterparty,
   deleteCounterparty,
   updateCreditAssessment,
   getCreditRiskCounterparties,
   getCounterpartyPerformance,
-  getCounterpartyStatistics
-} from '@/lib/database/counterparties';
-import { CounterpartyType, CreditRating } from '@prisma/client';
+  getCounterpartyStatistics,
+} from "@/lib/database/counterparties";
+import { CounterpartyType, CreditRating } from "@prisma/client";
 
 export function useCounterparties(filters?: {
   type?: CounterpartyType;
@@ -24,21 +24,25 @@ export function useCounterparties(filters?: {
   searchTerm?: string;
 }) {
   return useQuery({
-    queryKey: ['counterparties', filters],
+    queryKey: ["counterparties", filters],
     queryFn: () => getCounterparties(filters),
   });
 }
 
 export function useCreditRiskCounterparties(utilizationThreshold: number = 80) {
   return useQuery({
-    queryKey: ['credit-risk-counterparties', utilizationThreshold],
+    queryKey: ["credit-risk-counterparties", utilizationThreshold],
     queryFn: () => getCreditRiskCounterparties(utilizationThreshold),
   });
 }
 
-export function useCounterpartyPerformance(id: string, dateFrom?: Date, dateTo?: Date) {
+export function useCounterpartyPerformance(
+  id: string,
+  dateFrom?: Date,
+  dateTo?: Date,
+) {
   return useQuery({
-    queryKey: ['counterparty-performance', id, dateFrom, dateTo],
+    queryKey: ["counterparty-performance", id, dateFrom, dateTo],
     queryFn: () => getCounterpartyPerformance(id, dateFrom, dateTo),
     enabled: !!id,
   });
@@ -46,56 +50,59 @@ export function useCounterpartyPerformance(id: string, dateFrom?: Date, dateTo?:
 
 export function useCounterpartyStatistics() {
   return useQuery({
-    queryKey: ['counterparty-statistics'],
+    queryKey: ["counterparty-statistics"],
     queryFn: getCounterpartyStatistics,
   });
 }
 
 export function useCreateCounterparty() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createCounterparty,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['counterparties'] });
-      queryClient.invalidateQueries({ queryKey: ['counterparty-statistics'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
+      queryClient.invalidateQueries({ queryKey: ["counterparty-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
     },
   });
 }
 
 export function useUpdateCounterparty() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateCounterparty(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateCounterparty(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['counterparties'] });
-      queryClient.invalidateQueries({ queryKey: ['counterparty-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
+      queryClient.invalidateQueries({ queryKey: ["counterparty-statistics"] });
     },
   });
 }
 
 export function useDeleteCounterparty() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: deleteCounterparty,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['counterparties'] });
-      queryClient.invalidateQueries({ queryKey: ['counterparty-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
+      queryClient.invalidateQueries({ queryKey: ["counterparty-statistics"] });
     },
   });
 }
 
 export function useUpdateCreditAssessment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: updateCreditAssessment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['counterparties'] });
-      queryClient.invalidateQueries({ queryKey: ['credit-risk-counterparties'] });
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
+      queryClient.invalidateQueries({
+        queryKey: ["credit-risk-counterparties"],
+      });
     },
   });
 }

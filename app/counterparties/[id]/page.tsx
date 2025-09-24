@@ -1,9 +1,16 @@
-import React from 'react';
-import { notFound } from 'next/navigation';
-import { getCounterpartyById, getCounterpartyPerformance } from '@/lib/database/counterparties';
-import { CounterpartyDetailClient } from '@/components/counterparties/counterparty-detail-client';
+import React from "react";
+import { notFound } from "next/navigation";
+import {
+  getCounterpartyById,
+  getCounterpartyPerformance,
+} from "@/lib/database/counterparties";
+import { CounterpartyDetailClient } from "@/components/counterparties/counterparty-detail-client";
 
-export default async function CounterpartyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CounterpartyDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
 
   try {
@@ -13,10 +20,12 @@ export default async function CounterpartyDetailPage({ params }: { params: Promi
     ]);
 
     return (
-      <CounterpartyDetailClient counterparty={counterparty} performance={performanceResult.performance} />
+      <CounterpartyDetailClient
+        counterparty={counterparty}
+        performance={performanceResult.performance}
+      />
     );
   } catch (error) {
     notFound();
   }
 }
-

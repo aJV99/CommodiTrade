@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getShipments,
   createShipment,
@@ -11,8 +11,8 @@ import {
   getShipmentStatistics,
   getShipmentById,
   type UpdateShipmentData,
-} from '@/lib/database/shipments';
-import { ShipmentStatus } from '@prisma/client';
+} from "@/lib/database/shipments";
+import { ShipmentStatus } from "@prisma/client";
 
 export function useShipments(filters?: {
   status?: ShipmentStatus;
@@ -29,14 +29,14 @@ export function useShipments(filters?: {
   offset?: number;
 }) {
   return useQuery({
-    queryKey: ['shipments', filters],
+    queryKey: ["shipments", filters],
     queryFn: () => getShipments(filters),
   });
 }
 
 export function useShipment(id: string) {
   return useQuery({
-    queryKey: ['shipment', id],
+    queryKey: ["shipment", id],
     queryFn: () => getShipmentById(id),
     enabled: !!id,
   });
@@ -44,14 +44,14 @@ export function useShipment(id: string) {
 
 export function useDelayedShipments() {
   return useQuery({
-    queryKey: ['delayed-shipments'],
+    queryKey: ["delayed-shipments"],
     queryFn: getDelayedShipments,
   });
 }
 
 export function useArrivingSoonShipments(daysAhead: number = 7) {
   return useQuery({
-    queryKey: ['arriving-soon-shipments', daysAhead],
+    queryKey: ["arriving-soon-shipments", daysAhead],
     queryFn: () => getArrivingSoonShipments(daysAhead),
   });
 }
@@ -63,20 +63,20 @@ export function useShipmentStatistics(filters?: {
   dateTo?: Date;
 }) {
   return useQuery({
-    queryKey: ['shipment-statistics', filters],
+    queryKey: ["shipment-statistics", filters],
     queryFn: () => getShipmentStatistics(filters),
   });
 }
 
 export function useCreateShipment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createShipment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['shipment-statistics'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["shipment-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
     },
   });
 }
@@ -85,30 +85,36 @@ export function useUpdateShipment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateShipmentData }) => updateShipment(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateShipmentData }) =>
+      updateShipment(id, data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['delayed-shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['arriving-soon-shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['shipment', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["delayed-shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["arriving-soon-shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["shipment", variables.id] });
     },
   });
 }
 
 export function useUpdateShipmentStatus() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, status, location, notes }: { 
-      id: string; 
-      status: ShipmentStatus; 
-      location?: string; 
-      notes?: string; 
+    mutationFn: ({
+      id,
+      status,
+      location,
+      notes,
+    }: {
+      id: string;
+      status: ShipmentStatus;
+      location?: string;
+      notes?: string;
     }) => updateShipmentStatus(id, status, location, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['delayed-shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['arriving-soon-shipments'] });
+      queryClient.invalidateQueries({ queryKey: ["shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["delayed-shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["arriving-soon-shipments"] });
     },
   });
 }
@@ -116,23 +122,28 @@ export function useUpdateShipmentStatus() {
 export function useAddShipmentEvent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { status?: ShipmentStatus; location?: string; notes?: string } }) =>
-      addShipmentEvent(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { status?: ShipmentStatus; location?: string; notes?: string };
+    }) => addShipmentEvent(id, data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['shipment', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ["shipment", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["shipments"] });
     },
   });
 }
 
 export function useDeleteShipment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: deleteShipment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['shipment-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ["shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["shipment-statistics"] });
     },
   });
 }
