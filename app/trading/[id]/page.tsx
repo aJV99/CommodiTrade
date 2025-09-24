@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TradeModal } from "@/components/modals/trade-modal";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
@@ -41,6 +42,12 @@ export default function TradeDetailsPage() {
   const cancelTradeMutation = useCancelTrade();
   const updateTradeMutation = useUpdateTrade();
 
+  const [isEditTradeOpen, setIsEditTradeOpen] = useState(false);
+
+  const handleEditTradeSuccess = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
   const handleExecuteTrade = useCallback(async () => {
     try {
       if (!trade) return;
@@ -65,7 +72,8 @@ export default function TradeDetailsPage() {
       await cancelTradeMutation.mutateAsync(tradeId);
       toast({
         title: "Trade cancelled",
-        description: "The trade has been cancelled and credit has been released.",
+        description:
+          "The trade has been cancelled and credit has been released.",
       });
       await refetch();
     } catch (err) {
@@ -271,7 +279,16 @@ export default function TradeDetailsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
+      <TradeModal
+        mode="edit"
+        trade={trade ?? null}
+        open={isEditTradeOpen}
+        onOpenChange={setIsEditTradeOpen}
+        onSuccess={handleEditTradeSuccess}
+        isLoading={isLoading && !trade}
+      />
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -466,9 +483,7 @@ export default function TradeDetailsPage() {
                       variant="outline"
                       className="w-full"
                       size="sm"
-                      onClick={() =>
-                        router.push(`/trading?editTradeId=${trade.id}`)
-                      }
+                      onClick={() => setIsEditTradeOpen(true)}
                     >
                       Modify Trade
                     </Button>
@@ -577,11 +592,11 @@ export default function TradeDetailsPage() {
                           {shipment.status.replace("_", " ")}
                         </Badge>
                       </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {formatDate(shipment.expectedArrival)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <code className="text-xs bg-slate-100 px-2 py-1 rounded">
+                      <td className="py-3 px-4 text-slate-700">
+                        {formatDate(shipment.expectedArrival)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <code className="text-xs bg-slate-100 px-2 py-1 rounded">
                           {shipment.trackingNumber}
                         </code>
                       </td>
@@ -684,7 +699,7 @@ export default function TradeDetailsPage() {
                 <div className="w-2 h-2 bg-amber-500 rounded-full mt-2"></div>
                 <div>
                   <div className="font-medium text-slate-900">
-                    Shipment {event.trackingNumber} updated to {" "}
+                    Shipment {event.trackingNumber} updated to{" "}
                     {event.status.replace("_", " ")}
                   </div>
                   <div className="text-sm text-slate-600">
@@ -703,5 +718,8 @@ export default function TradeDetailsPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
+
+

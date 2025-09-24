@@ -19,10 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import {
-  useCreateTrade,
-  useUpdateTrade,
-} from "@/lib/hooks/use-trades";
+import { useCreateTrade, useUpdateTrade } from "@/lib/hooks/use-trades";
 import { useCommodities } from "@/lib/hooks/use-commodities";
 import { useCounterparties } from "@/lib/hooks/use-counterparties";
 import type { Commodity, Counterparty, Trade, TradeType } from "@prisma/client";
@@ -195,11 +192,7 @@ export function TradeModal({
 
   const renderTrigger = () => {
     if (trigger) {
-      return (
-        <DialogTrigger asChild>
-          {trigger}
-        </DialogTrigger>
-      );
+      return <DialogTrigger asChild>{trigger}</DialogTrigger>;
     }
 
     if (mode === "create") {
@@ -223,7 +216,7 @@ export function TradeModal({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
-          {mode === "edit" && isLoading && !trade ? (
+        {mode === "edit" && isLoading && !trade ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
             Loading trade details…
           </div>

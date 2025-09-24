@@ -276,7 +276,8 @@ export async function executeTrade({
     }
 
     const preferredLocation = location ?? trade.location;
-    const preferredWarehouse = warehouse ?? preferredLocation ?? "Main Warehouse";
+    const preferredWarehouse =
+      warehouse ?? preferredLocation ?? "Main Warehouse";
     const preferredQuality = quality ?? "Standard";
 
     const executedTrade = await prisma.$transaction(async (tx) => {

@@ -12,9 +12,9 @@ import {
 import { TradeStatus, TradeType } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
 
-type TradeListItem = (Awaited<ReturnType<typeof getTrades>> extends Array<infer Item>
-  ? Item
-  : never) extends infer Base
+type TradeListItem = (
+  Awaited<ReturnType<typeof getTrades>> extends Array<infer Item> ? Item : never
+) extends infer Base
   ? Base extends object
     ? Base
     : never

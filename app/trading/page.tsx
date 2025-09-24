@@ -1,6 +1,12 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,14 +64,15 @@ function TradingPageContent() {
     commodityId: commodityIdFilter,
   });
 
-  const { data: statistics, isLoading: statisticsLoading } = useTradeStatistics();
+  const { data: statistics, isLoading: statisticsLoading } =
+    useTradeStatistics();
 
-  const {
-    data: tradeToEdit,
-    isLoading: isEditLoading,
-  } = useTradeById(editTradeId ?? "", {
-    enabled: Boolean(editTradeId),
-  });
+  const { data: tradeToEdit, isLoading: isEditLoading } = useTradeById(
+    editTradeId ?? "",
+    {
+      enabled: Boolean(editTradeId),
+    },
+  );
 
   useEffect(() => {
     if (editTradeId) {
@@ -176,7 +183,7 @@ function TradingPageContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold text-slate-900">
-              {statisticsLoading ? "—" : statistics?.openTrades ?? 0}
+              {statisticsLoading ? "—" : (statistics?.openTrades ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Trades awaiting execution
@@ -191,7 +198,7 @@ function TradingPageContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold text-slate-900">
-              {statisticsLoading ? "—" : statistics?.executedTrades ?? 0}
+              {statisticsLoading ? "—" : (statistics?.executedTrades ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Awaiting settlement logistics
@@ -206,7 +213,7 @@ function TradingPageContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold text-slate-900">
-              {statisticsLoading ? "—" : statistics?.cancelledTrades ?? 0}
+              {statisticsLoading ? "—" : (statistics?.cancelledTrades ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Removed from the execution stack
@@ -317,8 +324,8 @@ function TradingPageContent() {
                       colSpan={10}
                       className="py-6 text-center text-sm text-destructive"
                     >
-                      Unable to load trades. Please refresh the page or try again
-                      shortly.
+                      Unable to load trades. Please refresh the page or try
+                      again shortly.
                     </td>
                   </tr>
                 ) : filteredTrades.length === 0 ? (
