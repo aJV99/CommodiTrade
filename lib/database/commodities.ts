@@ -1,6 +1,102 @@
 "use server";
 import { prisma } from "@/lib/prisma";
-import { CommodityType } from "@prisma/client";
+import { CommodityType, Prisma } from "@prisma/client";
+import { format, startOfDay, startOfWeek, subDays } from "date-fns";
+
+const commodityListInclude = {
+  trades: {
+    select: {
+      id: true,
+      quantity: true,
+      totalValue: true,
+      status: true,
+    },
+  },
+  inventory: {
+    select: {
+      id: true,
+      quantity: true,
+      warehouse: true,
+      location: true,
+      marketValue: true,
+      costBasis: true,
+    },
+  },
+  contracts: {
+    select: {
+      id: true,
+      quantity: true,
+      totalValue: true,
+      status: true,
+    },
+  },
+  shipments: {
+    select: { id: true },
+  },
+  _count: {
+    select: {
+      trades: true,
+      inventory: true,
+      contracts: true,
+      shipments: true,
+    },
+  },
+} as const;
+
+const commodityDetailInclude = {
+  trades: {
+    include: {
+      user: true,
+      counterparty: true,
+    },
+    orderBy: { tradeDate: "desc" },
+  },
+  inventory: {
+    orderBy: { lastUpdated: "desc" },
+  },
+  contracts: {
+    include: {
+      counterparty: true,
+    },
+    orderBy: { createdAt: "desc" },
+  },
+  shipments: {
+    include: {
+      trade: true,
+    },
+    orderBy: { createdAt: "desc" },
+  },
+} as const;
+
+export type CommodityFilters = {
+  type?: CommodityType;
+  minPrice?: number;
+  maxPrice?: number;
+  priceChangeDirection?: "positive" | "negative" | "neutral";
+  limit?: number;
+  offset?: number;
+};
+
+export type CommodityListItem = Prisma.CommodityGetPayload<{
+  include: typeof commodityListInclude;
+}>;
+
+export type CommodityWithRelations = Prisma.CommodityGetPayload<{
+  include: typeof commodityDetailInclude;
+}>;
+
+export type PriceHistoryGranularity = "daily" | "weekly";
+
+export interface CommodityPriceHistoryOptions {
+  days?: number;
+  granularity?: PriceHistoryGranularity;
+}
+
+export interface CommodityPriceHistoryPoint {
+  date: string;
+  price: number;
+  volume: number;
+}
 
 export interface CreateCommodityData {
   name: string;
@@ -22,6 +118,7 @@ export interface PriceUpdate {
   commodityId: string;
   newPrice: number;
   timestamp?: Date;
+  volume?: number;
 }
 
 // Create a new commodity
@@ -36,12 +133,23 @@ export async function createCommodity(data: CreateCommodityData) {
       throw new Error("Commodity with this name already exists");
     }
 
-    const commodity = await prisma.commodity.create({
-      data: {
-        ...data,
-        priceChange: 0,
-        priceChangePercent: 0,
-      },
+    const commodity = await prisma.$transaction(async (tx) => {
+      const createdCommodity = await tx.commodity.create({
+        data: {
+          ...data,
+          priceChange: 0,
+          priceChangePercent: 0,
+        },
+      });
+
+      await tx.commodityPriceTick.create({
+        data: {
+          commodityId: createdCommodity.id,
+          price: createdCommodity.currentPrice,
+        },
+      });
+
+      return createdCommodity;
     });
 
     return commodity;
@@ -52,25 +160,20 @@ export async function createCommodity(data: CreateCommodityData) {
 }
 
 // Get all commodities with filtering
-export async function getCommodities(filters?: {
-  type?: CommodityType;
-  minPrice?: number;
-  maxPrice?: number;
-  priceChangeDirection?: "positive" | "negative" | "neutral";
-  limit?: number;
-  offset?: number;
-}) {
+export async function getCommodities(filters?: CommodityFilters) {
   try {
-    const where: any = {};
+    const where: Prisma.CommodityWhereInput = {};
 
     if (filters?.type) where.type = filters.type;
 
     if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
       where.currentPrice = {};
-      if (filters.minPrice !== undefined)
+      if (filters.minPrice !== undefined) {
         where.currentPrice.gte = filters.minPrice;
-      if (filters.maxPrice !== undefined)
+      }
+      if (filters.maxPrice !== undefined) {
         where.currentPrice.lte = filters.maxPrice;
+      }
     }
 
     if (filters?.priceChangeDirection) {
@@ -89,40 +192,7 @@ export async function getCommodities(filters?: {
 
     const commodities = await prisma.commodity.findMany({
       where,
-      include: {
-        trades: {
-          select: {
-            id: true,
-            quantity: true,
-            totalValue: true,
-            status: true,
-          },
-        },
-        inventory: {
-          select: {
-            id: true,
-            quantity: true,
-            warehouse: true,
-            location: true,
-          },
-        },
-        contracts: {
-          select: {
-            id: true,
-            quantity: true,
-            totalValue: true,
-            status: true,
-          },
-        },
-        _count: {
-          select: {
-            trades: true,
-            inventory: true,
-            contracts: true,
-            shipments: true,
-          },
-        },
-      },
+      include: commodityListInclude,
       orderBy: { name: "asc" },
       take: filters?.limit || 100,
       skip: filters?.offset || 0,
@@ -140,29 +210,7 @@ export async function getCommodityById(id: string) {
   try {
     const commodity = await prisma.commodity.findUnique({
       where: { id },
-      include: {
-        trades: {
-          include: {
-            user: true,
-          },
-          orderBy: { tradeDate: "desc" },
-        },
-        inventory: {
-          orderBy: { lastUpdated: "desc" },
-        },
-        contracts: {
-          include: {
-            counterparty: true,
-          },
-          orderBy: { createdAt: "desc" },
-        },
-        shipments: {
-          include: {
-            trade: true,
-          },
-          orderBy: { createdAt: "desc" },
-        },
-      },
+      include: commodityDetailInclude,
     });
 
     if (!commodity) {
@@ -251,6 +299,15 @@ export async function updateCommodityPrice(priceUpdate: PriceUpdate) {
         },
       });
 
+      await tx.commodityPriceTick.create({
+        data: {
+          commodityId: priceUpdate.commodityId,
+          price: newPrice,
+          volume: priceUpdate.volume,
+          recordedAt: priceUpdate.timestamp ?? new Date(),
+        },
+      });
+
       return updatedCommodity;
     });
 
@@ -297,6 +354,15 @@ export async function batchUpdateCommodityPrices(priceUpdates: PriceUpdate[]) {
           data: {
             marketValue: newPrice,
             lastUpdated: new Date(),
+          },
+        });
+
+        await tx.commodityPriceTick.create({
+          data: {
+            commodityId: update.commodityId,
+            price: newPrice,
+            volume: update.volume,
+            recordedAt: update.timestamp ?? new Date(),
           },
         });
 
@@ -429,41 +495,94 @@ export async function getCommodityMarketSummary() {
 }
 
 // Get commodity price history (mock implementation - in real app would have price history table)
-export async function getCommodityPriceHistory(id: string, days: number = 30) {
+export async function getCommodityPriceHistory(
+  id: string,
+  options: CommodityPriceHistoryOptions = {},
+) {
   try {
+    const { days = 30, granularity = "daily" } = options;
     const commodity = await prisma.commodity.findUnique({
       where: { id },
+      select: {
+        id: true,
+        name: true,
+        currentPrice: true,
+      },
     });
 
     if (!commodity) {
       throw new Error("Commodity not found");
     }
 
-    // Mock price history generation
-    const history = [];
-    const currentPrice = commodity.currentPrice;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const startDate = subDays(new Date(), days - 1);
 
-    for (let i = 0; i < days; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
+    const ticks = await prisma.commodityPriceTick.findMany({
+      where: {
+        commodityId: id,
+        recordedAt: {
+          gte: startDate,
+        },
+      },
+      orderBy: { recordedAt: "asc" },
+    });
 
-      // Generate mock price with some volatility
-      const volatility = 0.02; // 2% daily volatility
-      const randomChange = (Math.random() - 0.5) * 2 * volatility;
-      const price = currentPrice * (1 + (randomChange * (days - i)) / days);
+    const buckets = new Map<
+      number,
+      { totalPrice: number; count: number; totalVolume: number; label: string }
+    >();
 
-      history.push({
-        date: date.toISOString().split("T")[0],
-        price: Math.round(price * 100) / 100,
-        volume: Math.floor(Math.random() * 1000) + 100,
-      });
-    }
+    const bucketStart = (date: Date) =>
+      granularity === "weekly"
+        ? startOfWeek(date, { weekStartsOn: 1 })
+        : startOfDay(date);
+
+    const bucketLabel = (date: Date) =>
+      granularity === "weekly"
+        ? `${format(date, "yyyy-'W'II")}`
+        : format(date, "yyyy-MM-dd");
+
+    const sourceTicks = ticks.length
+      ? ticks
+      : [
+          {
+            recordedAt: new Date(),
+            price: commodity.currentPrice,
+            volume: 0,
+          },
+        ];
+
+    sourceTicks.forEach((tick) => {
+      const bucketDate = bucketStart(tick.recordedAt);
+      const bucketKey = bucketDate.getTime();
+      const existing = buckets.get(bucketKey);
+      const volume = tick.volume ?? 0;
+
+      if (existing) {
+        existing.totalPrice += tick.price;
+        existing.count += 1;
+        existing.totalVolume += volume;
+      } else {
+        buckets.set(bucketKey, {
+          totalPrice: tick.price,
+          count: 1,
+          totalVolume: volume,
+          label: bucketLabel(bucketDate),
+        });
+      }
+    });
+
+    const history: CommodityPriceHistoryPoint[] = Array.from(buckets.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, bucket]) => ({
+        date: bucket.label,
+        price: Number((bucket.totalPrice / bucket.count).toFixed(2)),
+        volume: Math.round(bucket.totalVolume),
+      }));
 
     return {
       commodity,
       history,
+      granularity,
     };
   } catch (error) {
     console.error("Error fetching commodity price history:", error);
