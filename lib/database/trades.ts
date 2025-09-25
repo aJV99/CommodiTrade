@@ -41,26 +41,29 @@ export async function createTrade(data: CreateTradeData) {
       throw new Error("Commodity not found");
     }
 
-    // Validate counterparty exists
-    const counterparty = await prisma.counterparty.findUnique({
-      where: { id: data.counterpartyId },
-    });
-
-    if (!counterparty) {
-      throw new Error("Counterparty not found");
-    }
-
     // Calculate total value
     const totalValue = data.quantity * data.price;
 
-    // Check counterparty credit limit
-    const newCreditUsed = counterparty.creditUsed + totalValue;
-    if (newCreditUsed > counterparty.creditLimit) {
-      throw new Error("Trade exceeds counterparty credit limit");
-    }
-
     // Create trade in transaction
     const trade = await prisma.$transaction(async (tx) => {
+      const counterparty = await tx.counterparty.findUnique({
+        where: { id: data.counterpartyId },
+        select: {
+          id: true,
+          creditLimit: true,
+          creditUsed: true,
+        },
+      });
+
+      if (!counterparty) {
+        throw new Error("Counterparty not found");
+      }
+
+      const newCreditUsed = counterparty.creditUsed + totalValue;
+      if (newCreditUsed > counterparty.creditLimit) {
+        throw new Error("Trade exceeds counterparty credit limit");
+      }
+
       // Create the trade
       const newTrade = await tx.trade.create({
         data: {
