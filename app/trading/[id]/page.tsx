@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TradeModal } from "@/components/modals/trade-modal";
+import { ExecuteTradeModal } from "@/components/modals/execute-trade-modal";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
@@ -43,29 +44,15 @@ export default function TradeDetailsPage() {
   const updateTradeMutation = useUpdateTrade();
 
   const [isEditTradeOpen, setIsEditTradeOpen] = useState(false);
+  const [isExecuteTradeOpen, setIsExecuteTradeOpen] = useState(false);
 
   const handleEditTradeSuccess = useCallback(() => {
     void refetch();
   }, [refetch]);
 
-  const handleExecuteTrade = useCallback(async () => {
-    try {
-      if (!trade) return;
-
-      await executeTradeMutation.mutateAsync({
-        id: tradeId,
-        warehouse: trade.location,
-        location: trade.location,
-      });
-      toast({
-        title: "Trade executed",
-        description: "Inventory has been updated based on this trade.",
-      });
-      await refetch();
-    } catch (err) {
-      console.error("Unable to execute trade", err);
-    }
-  }, [executeTradeMutation, refetch, toast, trade, tradeId]);
+  const handleExecuteTradeSuccess = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
   const handleCancelTrade = useCallback(async () => {
     try {
@@ -288,6 +275,14 @@ export default function TradeDetailsPage() {
         onSuccess={handleEditTradeSuccess}
         isLoading={isLoading && !trade}
       />
+      {trade && (
+        <ExecuteTradeModal
+          trade={trade}
+          open={isExecuteTradeOpen}
+          onOpenChange={setIsExecuteTradeOpen}
+          onSuccess={handleExecuteTradeSuccess}
+        />
+      )}
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -479,12 +474,9 @@ export default function TradeDetailsPage() {
                       <Button
                         className="w-full"
                         size="sm"
-                        onClick={handleExecuteTrade}
-                        disabled={executeTradeMutation.isPending}
+                        onClick={() => setIsExecuteTradeOpen(true)}
                       >
-                        {executeTradeMutation.isPending
-                          ? "Executing…"
-                          : "Execute Trade"}
+                        Execute Trade
                       </Button>
                       <Button
                         variant="outline"
