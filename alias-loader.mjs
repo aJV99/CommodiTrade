@@ -13,14 +13,22 @@ export async function resolve(specifier, context, defaultResolve) {
     const compiledTarget = ensureExtension(
       path.join(compiledRoot, specifier.slice("@/lib/".length)),
     );
-    return defaultResolve(pathToFileURL(compiledTarget).href, context, defaultResolve);
+    return defaultResolve(
+      pathToFileURL(compiledTarget).href,
+      context,
+      defaultResolve,
+    );
   }
 
   if (specifier.startsWith("@/")) {
     const sourceTarget = ensureExtension(
       path.join(projectRoot, specifier.slice(2)),
     );
-    return defaultResolve(pathToFileURL(sourceTarget).href, context, defaultResolve);
+    return defaultResolve(
+      pathToFileURL(sourceTarget).href,
+      context,
+      defaultResolve,
+    );
   }
 
   return defaultResolve(specifier, context, defaultResolve);

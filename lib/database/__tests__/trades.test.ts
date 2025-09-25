@@ -25,7 +25,12 @@ describe("applySellLotMovements", () => {
       { id: "lot-3", quantity: 25 },
     ];
 
-    await applySellLotMovements(trade, candidateLots, movementExecutor, undefined);
+    await applySellLotMovements(
+      trade,
+      candidateLots,
+      movementExecutor,
+      undefined,
+    );
 
     assert.equal(movementExecutorMock.mock.calls.length, 2);
 
@@ -61,7 +66,12 @@ describe("applySellLotMovements", () => {
       { id: "partial-lot", quantity: 30 },
     ];
 
-    await applySellLotMovements(trade, candidateLots, movementExecutor, undefined);
+    await applySellLotMovements(
+      trade,
+      candidateLots,
+      movementExecutor,
+      undefined,
+    );
 
     assert.equal(movementExecutorMock.mock.calls.length, 1);
     const call = movementExecutorMock.mock.calls[0].arguments;
@@ -83,21 +93,15 @@ describe("applySellLotMovements", () => {
       { id: "lot-B", quantity: 50 },
     ];
 
-    await assert.rejects(
-      async () => {
-        await applySellLotMovements(
-          trade,
-          candidateLots,
-          movementExecutor,
-          undefined,
-        );
-      },
-      /Unable to allocate inventory lots for SELL trade execution/,
-    );
+    await assert.rejects(async () => {
+      await applySellLotMovements(
+        trade,
+        candidateLots,
+        movementExecutor,
+        undefined,
+      );
+    }, /Unable to allocate inventory lots for SELL trade execution/);
 
-    assert.equal(
-      movementExecutorMock.mock.calls.length,
-      candidateLots.length,
-    );
+    assert.equal(movementExecutorMock.mock.calls.length, candidateLots.length);
   });
 });

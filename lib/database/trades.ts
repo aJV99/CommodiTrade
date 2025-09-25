@@ -51,10 +51,11 @@ export async function applySellLotMovements(
   }
 
   if (remainingQuantity > 0) {
-    throw new Error("Unable to allocate inventory lots for SELL trade execution");
+    throw new Error(
+      "Unable to allocate inventory lots for SELL trade execution",
+    );
   }
 }
-
 
 export interface ExecuteTradeOptions {
   id: string;
