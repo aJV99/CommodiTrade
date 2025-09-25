@@ -3,6 +3,48 @@ import { prisma } from "@/lib/prisma";
 import { TradeType, TradeStatus } from "@prisma/client";
 import { processInventoryMovement } from "@/lib/database/inventory";
 
+export type InventoryMovementExecutor = typeof processInventoryMovement;
+
+export async function applySellLotMovements(
+  trade: { id: string; quantity: number; price: number },
+  candidateLots: Array<{ id: string; quantity: number }>,
+  movementExecutor: InventoryMovementExecutor,
+  tx: Parameters<InventoryMovementExecutor>[1],
+) {
+  let remainingQuantity = trade.quantity;
+
+  for (const lot of candidateLots) {
+    if (remainingQuantity <= 0) {
+      break;
+    }
+
+    if (lot.quantity <= 0) {
+      continue;
+    }
+
+    const quantityToUse = Math.min(lot.quantity, remainingQuantity);
+
+    await movementExecutor(
+      {
+        inventoryId: lot.id,
+        type: "OUT",
+        quantity: quantityToUse,
+        reason: `Trade ${trade.id} execution`,
+        referenceType: "TRADE",
+        referenceId: trade.id,
+        unitMarketValue: trade.price,
+      },
+      tx,
+    );
+
+    remainingQuantity -= quantityToUse;
+  }
+
+  if (remainingQuantity > 0) {
+    throw new Error("Unable to allocate inventory lots for SELL trade execution");
+  }
+}
+
 export interface CreateTradeData {
   commodityId: string;
   type: TradeType;
@@ -369,26 +411,10 @@ export async function executeTrade({
           );
         }
 
-        const selectedLot = candidateLots.find(
-          (lot) => lot.quantity >= trade.quantity,
-        );
-
-        if (!selectedLot) {
-          throw new Error(
-            "No single inventory lot can cover the requested SELL quantity",
-          );
-        }
-
-        await processInventoryMovement(
-          {
-            inventoryId: selectedLot.id,
-            type: "OUT",
-            quantity: trade.quantity,
-            reason: `Trade ${trade.id} execution`,
-            referenceType: "TRADE",
-            referenceId: trade.id,
-            unitMarketValue: trade.price,
-          },
+        await applySellLotMovements(
+          { id: trade.id, quantity: trade.quantity, price: trade.price },
+          candidateLots,
+          processInventoryMovement,
           tx,
         );
       }
