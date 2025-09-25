@@ -8,6 +8,7 @@ import {
   cancelTrade,
   getTradeStatistics,
   getTradeById,
+  type UpdateTradeData,
 } from "@/lib/database/trades";
 import { TradeStatus, TradeType } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
@@ -121,9 +122,12 @@ export function useUpdateTrade() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      updateTrade(id, data),
+  return useMutation<
+    Awaited<ReturnType<typeof updateTrade>>,
+    Error,
+    { id: string; data: UpdateTradeData }
+  >({
+    mutationFn: ({ id, data }) => updateTrade(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["trades"] });
       queryClient.invalidateQueries({ queryKey: ["trade", variables.id] });
