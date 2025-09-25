@@ -2,24 +2,59 @@
 import { prisma } from "@/lib/prisma";
 import { TradeType, TradeStatus } from "@prisma/client";
 import { processInventoryMovement } from "@/lib/database/inventory";
+import {
+  tradeCreateSchema,
+  tradeUpdateSchema,
+  type TradeCreateInput,
+  type TradeUpdateInput,
+} from "@/lib/validation/trades";
 
-export interface CreateTradeData {
-  commodityId: string;
-  type: TradeType;
-  quantity: number;
-  price: number;
-  counterpartyId: string;
-  settlementDate: Date;
-  location: string;
-  userId?: string;
-}
+export type CreateTradeData = TradeCreateInput;
 
-export interface UpdateTradeData {
-  quantity?: number;
-  price?: number;
-  status?: TradeStatus;
-  settlementDate?: Date;
-  location?: string;
+export type UpdateTradeData = TradeUpdateInput;
+
+export type InventoryMovementExecutor = typeof processInventoryMovement;
+
+export async function applySellLotMovements(
+  trade: { id: string; quantity: number; price: number },
+  candidateLots: Array<{ id: string; quantity: number }>,
+  movementExecutor: InventoryMovementExecutor,
+  tx: Parameters<InventoryMovementExecutor>[1],
+) {
+  let remainingQuantity = trade.quantity;
+
+  for (const lot of candidateLots) {
+    if (remainingQuantity <= 0) {
+      break;
+    }
+
+    if (lot.quantity <= 0) {
+      continue;
+    }
+
+    const quantityToUse = Math.min(lot.quantity, remainingQuantity);
+
+    await movementExecutor(
+      {
+        inventoryId: lot.id,
+        type: "OUT",
+        quantity: quantityToUse,
+        reason: `Trade ${trade.id} execution`,
+        referenceType: "TRADE",
+        referenceId: trade.id,
+        unitMarketValue: trade.price,
+      },
+      tx,
+    );
+
+    remainingQuantity -= quantityToUse;
+  }
+
+  if (remainingQuantity > 0) {
+    throw new Error(
+      "Unable to allocate inventory lots for SELL trade execution",
+    );
+  }
 }
 
 export interface ExecuteTradeOptions {
@@ -30,8 +65,9 @@ export interface ExecuteTradeOptions {
 }
 
 // Create a new trade
-export async function createTrade(data: CreateTradeData) {
+export async function createTrade(input: CreateTradeData) {
   try {
+    const data = tradeCreateSchema.parse(input);
     // Validate commodity exists
     const commodity = await prisma.commodity.findUnique({
       where: { id: data.commodityId },
@@ -41,30 +77,40 @@ export async function createTrade(data: CreateTradeData) {
       throw new Error("Commodity not found");
     }
 
-    // Validate counterparty exists
-    const counterparty = await prisma.counterparty.findUnique({
-      where: { id: data.counterpartyId },
-    });
-
-    if (!counterparty) {
-      throw new Error("Counterparty not found");
-    }
-
     // Calculate total value
     const totalValue = data.quantity * data.price;
 
-    // Check counterparty credit limit
-    const newCreditUsed = counterparty.creditUsed + totalValue;
-    if (newCreditUsed > counterparty.creditLimit) {
-      throw new Error("Trade exceeds counterparty credit limit");
-    }
-
     // Create trade in transaction
     const trade = await prisma.$transaction(async (tx) => {
+      const counterparty = await tx.counterparty.findUnique({
+        where: { id: data.counterpartyId },
+        select: {
+          id: true,
+          creditLimit: true,
+          creditUsed: true,
+        },
+      });
+
+      if (!counterparty) {
+        throw new Error("Counterparty not found");
+      }
+
+      const newCreditUsed = counterparty.creditUsed + totalValue;
+      if (newCreditUsed > counterparty.creditLimit) {
+        throw new Error("Trade exceeds counterparty credit limit");
+      }
+
       // Create the trade
       const newTrade = await tx.trade.create({
         data: {
-          ...data,
+          commodityId: data.commodityId,
+          type: data.type,
+          quantity: data.quantity,
+          price: data.price,
+          counterpartyId: data.counterpartyId,
+          settlementDate: data.settlementDate,
+          location: data.location,
+          ...(data.userId ? { userId: data.userId } : {}),
           totalValue,
           status: TradeStatus.OPEN,
           // counterparty: { connect: { id: data.counterpartyId } },
@@ -172,8 +218,9 @@ export async function getTradeById(id: string) {
 }
 
 // Update trade
-export async function updateTrade(id: string, data: UpdateTradeData) {
+export async function updateTrade(id: string, input: UpdateTradeData) {
   try {
+    const data = tradeUpdateSchema.parse(input);
     return await prisma.$transaction(async (tx) => {
       const existingTrade = await tx.trade.findUnique({
         where: { id },
@@ -218,10 +265,28 @@ export async function updateTrade(id: string, data: UpdateTradeData) {
         );
       }
 
+      const sanitizedUpdateData: UpdateTradeData = {};
+
+      if (data.quantity !== undefined) {
+        sanitizedUpdateData.quantity = data.quantity;
+      }
+      if (data.price !== undefined) {
+        sanitizedUpdateData.price = data.price;
+      }
+      if (data.status !== undefined) {
+        sanitizedUpdateData.status = data.status;
+      }
+      if (data.settlementDate !== undefined) {
+        sanitizedUpdateData.settlementDate = data.settlementDate;
+      }
+      if (data.location !== undefined) {
+        sanitizedUpdateData.location = data.location;
+      }
+
       const updatedTrade = await tx.trade.update({
         where: { id },
         data: {
-          ...data,
+          ...sanitizedUpdateData,
           totalValue: recalculatedTotalValue,
           updatedAt: new Date(),
         },
@@ -369,26 +434,10 @@ export async function executeTrade({
           );
         }
 
-        const selectedLot = candidateLots.find(
-          (lot) => lot.quantity >= trade.quantity,
-        );
-
-        if (!selectedLot) {
-          throw new Error(
-            "No single inventory lot can cover the requested SELL quantity",
-          );
-        }
-
-        await processInventoryMovement(
-          {
-            inventoryId: selectedLot.id,
-            type: "OUT",
-            quantity: trade.quantity,
-            reason: `Trade ${trade.id} execution`,
-            referenceType: "TRADE",
-            referenceId: trade.id,
-            unitMarketValue: trade.price,
-          },
+        await applySellLotMovements(
+          { id: trade.id, quantity: trade.quantity, price: trade.price },
+          candidateLots,
+          processInventoryMovement,
           tx,
         );
       }

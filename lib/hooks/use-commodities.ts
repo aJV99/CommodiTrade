@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getCommodities,
   getCommodityById,
@@ -9,28 +9,24 @@ import {
   deleteCommodity,
   getCommodityMarketSummary,
   getCommodityPriceHistory,
+  type CommodityFilters,
+  type CommodityListItem,
+  type CommodityPriceHistoryOptions,
+  type CommodityWithRelations,
 } from "@/lib/database/commodities";
-import { CommodityType } from "@prisma/client";
-
-export function useCommodities(filters?: {
-  type?: CommodityType;
-  minPrice?: number;
-  maxPrice?: number;
-  priceChangeDirection?: "positive" | "negative" | "neutral";
-  limit?: number;
-  offset?: number;
-}) {
-  return useQuery({
+export function useCommodities(filters?: CommodityFilters) {
+  return useQuery<CommodityListItem[]>({
     queryKey: ["commodities", filters],
     queryFn: () => getCommodities(filters),
   });
 }
 
 export function useCommodityById(id: string) {
-  return useQuery({
+  return useQuery<CommodityWithRelations>({
     queryKey: ["commodity", id],
     queryFn: () => getCommodityById(id),
     enabled: !!id,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -41,10 +37,13 @@ export function useCommodityMarketSummary() {
   });
 }
 
-export function useCommodityPriceHistory(id: string, days: number = 30) {
+export function useCommodityPriceHistory(
+  id: string,
+  options?: CommodityPriceHistoryOptions,
+) {
   return useQuery({
-    queryKey: ["commodity-price-history", id, days],
-    queryFn: () => getCommodityPriceHistory(id, days),
+    queryKey: ["commodity-price-history", id, options],
+    queryFn: () => getCommodityPriceHistory(id, options),
     enabled: !!id,
   });
 }
@@ -67,9 +66,14 @@ export function useUpdateCommodity() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       updateCommodity(id, data),
-    onSuccess: () => {
+    onSuccess: (commodity) => {
       queryClient.invalidateQueries({ queryKey: ["commodities"] });
       queryClient.invalidateQueries({ queryKey: ["commodity-market-summary"] });
+      if (commodity?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["commodity", commodity.id],
+        });
+      }
     },
   });
 }
@@ -79,11 +83,19 @@ export function useUpdateCommodityPrice() {
 
   return useMutation({
     mutationFn: updateCommodityPrice,
-    onSuccess: () => {
+    onSuccess: (commodity) => {
       queryClient.invalidateQueries({ queryKey: ["commodities"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-valuation"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-statistics"] });
+      if (commodity?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["commodity", commodity.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["commodity-price-history", commodity.id],
+        });
+      }
     },
   });
 }
@@ -107,9 +119,15 @@ export function useDeleteCommodity() {
 
   return useMutation({
     mutationFn: deleteCommodity,
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["commodities"] });
       queryClient.invalidateQueries({ queryKey: ["commodity-market-summary"] });
+      if (id) {
+        queryClient.removeQueries({ queryKey: ["commodity", id] });
+        queryClient.removeQueries({
+          queryKey: ["commodity-price-history", id],
+        });
+      }
     },
   });
 }

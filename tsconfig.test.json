@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".test-dist",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": [
+    "lib/database/trades.ts",
+    "lib/database/__tests__/**/*.ts",
+    "lib/database/inventory.ts",
+    "lib/prisma.ts"
+  ]
+}

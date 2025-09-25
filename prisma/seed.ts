@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ShipmentStatus } from "@prisma/client";
+import { subDays } from "date-fns";
 
 async function main() {
   const commodity = await prisma.commodity.upsert({
@@ -14,6 +15,27 @@ async function main() {
       priceChangePercent: 0,
     },
   });
+
+  await prisma.commodityPriceTick.deleteMany({
+    where: { commodityId: commodity.id },
+  });
+
+  const today = new Date();
+  const basePrice = commodity.currentPrice;
+  const tickData = Array.from({ length: 30 }).map((_, index) => {
+    const recordedAt = subDays(today, 29 - index);
+    const noise = (Math.random() - 0.5) * 0.2;
+    const price = Math.max(0.1, basePrice * (1 + noise));
+
+    return {
+      commodityId: commodity.id,
+      price: Number(price.toFixed(2)),
+      volume: Math.floor(Math.random() * 500) + 50,
+      recordedAt,
+    };
+  });
+
+  await prisma.commodityPriceTick.createMany({ data: tickData });
 
   const shipment = await prisma.shipment.create({
     data: {

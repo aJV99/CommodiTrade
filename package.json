@@ -10,6 +10,7 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test --experimental-specifier-resolution=node --loader ./alias-loader.mjs .test-dist/database/__tests__/trades.test.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",

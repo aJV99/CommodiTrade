@@ -38,8 +38,22 @@ model Commodity {
   inventory     InventoryItem[]
   contracts     Contract[]
   shipments     Shipment[]
+  priceTicks    CommodityPriceTick[]
 
   @@map("commodities")
+}
+
+model CommodityPriceTick {
+  id          String    @id @default(cuid())
+  commodityId String
+  price       Float
+  volume      Float?
+  recordedAt  DateTime  @default(now())
+
+  commodity Commodity @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+
+  @@index([commodityId, recordedAt], map: "commodity_price_ticks_commodity_recorded_idx")
+  @@map("commodity_price_ticks")
 }
 
 model Trade {
