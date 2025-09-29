@@ -18,9 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+      <body className={cn("h-screen bg-background font-sans antialiased")}>
         <QueryProvider>
-          <div className="flex min-h-screen bg-muted">
+          <div className="flex h-screen bg-muted">
             <aside className="hidden border-r border-slate-800 bg-slate-900 lg:flex">
               <Sidebar />
             </aside>
