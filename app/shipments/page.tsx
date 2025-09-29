@@ -19,6 +19,7 @@ import { ShipmentStatus } from "@prisma/client";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCommodities } from "@/lib/hooks/use-commodities";
+import { ALL_SELECT_VALUE, normalizeSelectValue } from "@/lib/utils";
 
 export default function ShipmentsPage() {
   return (
@@ -36,13 +37,16 @@ export default function ShipmentsPage() {
 
 function ShipmentsPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "all">(
-    "all",
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    ShipmentStatus | typeof ALL_SELECT_VALUE
+  >(ALL_SELECT_VALUE);
   const searchParams = useSearchParams();
   const router = useRouter();
   const commodityIdFilter = searchParams.get("commodityId") ?? undefined;
   const { data: commodities = [] } = useCommodities();
+
+  const normalizedStatusFilter =
+    normalizeSelectValue<ShipmentStatus>(statusFilter);
 
   const {
     data: shipments = [],
@@ -50,11 +54,14 @@ function ShipmentsPageContent() {
     refetch,
   } = useShipments({
     commodityId: commodityIdFilter,
-    status: statusFilter === "all" ? undefined : statusFilter,
+    status: normalizedStatusFilter,
   });
 
   const filteredShipments = useMemo(() => {
     return shipments.filter((shipment) => {
+      const matchesStatus =
+        !normalizedStatusFilter || shipment.status === normalizedStatusFilter;
+
       const matchesSearch =
         searchTerm === "" ||
         shipment.commodity.name
@@ -67,12 +74,9 @@ function ShipmentsPageContent() {
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "all" || shipment.status === statusFilter;
-
       return matchesSearch && matchesStatus;
     });
-  }, [shipments, searchTerm, statusFilter]);
+  }, [shipments, searchTerm, normalizedStatusFilter]);
 
   const hasFilteredShipments = filteredShipments.length > 0;
 
@@ -244,14 +248,16 @@ function ShipmentsPageContent() {
               <Select
                 value={statusFilter}
                 onValueChange={(value) =>
-                  setStatusFilter(value as ShipmentStatus | "all")
+                  setStatusFilter(
+                    value as ShipmentStatus | typeof ALL_SELECT_VALUE,
+                  )
                 }
               >
                 <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value={ALL_SELECT_VALUE}>All Status</SelectItem>
                   <SelectItem value="PREPARING">Preparing</SelectItem>
                   <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
                   <SelectItem value="DELIVERED">Delivered</SelectItem>

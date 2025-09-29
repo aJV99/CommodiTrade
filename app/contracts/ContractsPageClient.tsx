@@ -18,13 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContractModal } from "@/components/modals/contract-modal";
+import { ALL_SELECT_VALUE, normalizeSelectValue } from "@/lib/utils";
 
 type ContractWithRelations = Prisma.ContractGetPayload<{
   include: { commodity: true; counterparty: true };
 }>;
 
-type StatusFilter = ContractWithRelations["status"] | "all";
-type TypeFilter = ContractWithRelations["type"] | "all";
+type StatusFilter = ContractWithRelations["status"] | typeof ALL_SELECT_VALUE;
+type TypeFilter = ContractWithRelations["type"] | typeof ALL_SELECT_VALUE;
 
 type ContractsPageClientProps = {
   contracts: ContractWithRelations[];
@@ -81,13 +82,19 @@ export function ContractsPageClient({
 }: ContractsPageClientProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [statusFilter, setStatusFilter] =
+    useState<StatusFilter>(ALL_SELECT_VALUE);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(ALL_SELECT_VALUE);
 
   const contracts = useMemo(() => initialContracts ?? [], [initialContracts]);
 
   const filteredContracts = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
+
+    const activeStatusFilter =
+      normalizeSelectValue<ContractWithRelations["status"]>(statusFilter);
+    const activeTypeFilter =
+      normalizeSelectValue<ContractWithRelations["type"]>(typeFilter);
 
     return contracts.filter((contract) => {
       const commodityName = contract.commodity?.name?.toLowerCase() ?? "";
@@ -99,8 +106,9 @@ export function ContractsPageClient({
         contract.id.toLowerCase().includes(search);
 
       const matchesStatus =
-        statusFilter === "all" || contract.status === statusFilter;
-      const matchesType = typeFilter === "all" || contract.type === typeFilter;
+        !activeStatusFilter || contract.status === activeStatusFilter;
+      const matchesType =
+        !activeTypeFilter || contract.type === activeTypeFilter;
 
       return matchesSearch && matchesStatus && matchesType;
     });
@@ -134,8 +142,8 @@ export function ContractsPageClient({
 
   const handleContractCreated = () => {
     setSearchTerm("");
-    setStatusFilter("all");
-    setTypeFilter("all");
+    setStatusFilter(ALL_SELECT_VALUE);
+    setTypeFilter(ALL_SELECT_VALUE);
     router.refresh();
   };
 
@@ -239,14 +247,18 @@ export function ContractsPageClient({
               <Select
                 value={statusFilter}
                 onValueChange={(value) =>
-                  setStatusFilter(value as StatusFilter)
+                  setStatusFilter(
+                    value as
+                      | ContractWithRelations["status"]
+                      | typeof ALL_SELECT_VALUE,
+                  )
                 }
               >
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value={ALL_SELECT_VALUE}>All Status</SelectItem>
                   <SelectItem value="ACTIVE">{statusLabels.ACTIVE}</SelectItem>
                   <SelectItem value="COMPLETED">
                     {statusLabels.COMPLETED}
@@ -258,13 +270,19 @@ export function ContractsPageClient({
               </Select>
               <Select
                 value={typeFilter}
-                onValueChange={(value) => setTypeFilter(value as TypeFilter)}
+                onValueChange={(value) =>
+                  setTypeFilter(
+                    value as
+                      | ContractWithRelations["type"]
+                      | typeof ALL_SELECT_VALUE,
+                  )
+                }
               >
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value={ALL_SELECT_VALUE}>All Types</SelectItem>
                   <SelectItem value="PURCHASE">
                     {typeLabels.PURCHASE}
                   </SelectItem>
