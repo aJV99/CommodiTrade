@@ -44,6 +44,13 @@ import { cn } from "@/lib/utils";
 import type { Commodity, InventoryItem } from "@prisma/client";
 
 const SAVED_VIEWS_STORAGE_KEY = "inventory-saved-views";
+const ALL_FILTER_VALUE = "__all__";
+
+const shouldResetFilter = (value: string) => {
+  if (!value) return true;
+  if (value === ALL_FILTER_VALUE) return true;
+  return value.toLowerCase() === "all";
+};
 
 type InventoryFilters = {
   commodityId?: string;
@@ -56,6 +63,27 @@ type SavedView = {
   name: string;
   filters: InventoryFilters;
 };
+
+const sanitizeFilters = (filters: InventoryFilters): InventoryFilters => {
+  const sanitized: InventoryFilters = {};
+
+  if (filters.commodityId && !shouldResetFilter(filters.commodityId)) {
+    sanitized.commodityId = filters.commodityId;
+  }
+
+  if (filters.warehouse && !shouldResetFilter(filters.warehouse)) {
+    sanitized.warehouse = filters.warehouse;
+  }
+
+  if (filters.location && !shouldResetFilter(filters.location)) {
+    sanitized.location = filters.location;
+  }
+
+  return sanitized;
+};
+
+const getFilterSelectValue = (value?: string) =>
+  value && !shouldResetFilter(value) ? value : ALL_FILTER_VALUE;
 
 type InventoryWithCommodity = InventoryItem & { commodity: Commodity };
 
@@ -87,13 +115,7 @@ export default function InventoryPage() {
   const [selectedViewId, setSelectedViewId] = useState<string>("");
   const previousMarketValuesRef = useRef<Map<string, number>>(new Map());
 
-  const normalizedFilters = useMemo(() => {
-    const activeFilters: InventoryFilters = {};
-    if (filters.commodityId) activeFilters.commodityId = filters.commodityId;
-    if (filters.warehouse) activeFilters.warehouse = filters.warehouse;
-    if (filters.location) activeFilters.location = filters.location;
-    return activeFilters;
-  }, [filters]);
+  const normalizedFilters = useMemo(() => sanitizeFilters(filters), [filters]);
 
   const {
     data: inventory = [],
@@ -118,7 +140,12 @@ export default function InventoryPage() {
     if (stored) {
       try {
         const parsed: SavedView[] = JSON.parse(stored);
-        setSavedViews(parsed);
+        setSavedViews(
+          parsed.map((view) => ({
+            ...view,
+            filters: sanitizeFilters(view.filters),
+          })),
+        );
       } catch (error) {
         console.error("Failed to parse inventory saved views", error);
       }
@@ -271,7 +298,7 @@ export default function InventoryPage() {
     setSelectedViewId(viewId);
     const view = savedViews.find((saved) => saved.id === viewId);
     if (view) {
-      setFilters(view.filters);
+      setFilters(sanitizeFilters(view.filters));
     }
   };
 
@@ -473,11 +500,11 @@ export default function InventoryPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-end">
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <Select
-                  value={filters.commodityId ?? ""}
+                  value={getFilterSelectValue(filters.commodityId)}
                   onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      commodityId: value || undefined,
+                      commodityId: shouldResetFilter(value) ? undefined : value,
                     }))
                   }
                 >
@@ -485,7 +512,9 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Commodity" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">All commodities</SelectItem>
+                    <SelectItem value={ALL_FILTER_VALUE}>
+                      All commodities
+                    </SelectItem>
                     {commodityOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -494,11 +523,11 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={filters.warehouse ?? ""}
+                  value={getFilterSelectValue(filters.warehouse)}
                   onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      warehouse: value || undefined,
+                      warehouse: shouldResetFilter(value) ? undefined : value,
                     }))
                   }
                 >
@@ -506,7 +535,9 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Warehouse" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">All warehouses</SelectItem>
+                    <SelectItem value={ALL_FILTER_VALUE}>
+                      All warehouses
+                    </SelectItem>
                     {warehouses.map((warehouse) => (
                       <SelectItem key={warehouse} value={warehouse}>
                         {warehouse}
@@ -515,11 +546,11 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={filters.location ?? ""}
+                  value={getFilterSelectValue(filters.location)}
                   onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      location: value || undefined,
+                      location: shouldResetFilter(value) ? undefined : value,
                     }))
                   }
                 >
@@ -527,7 +558,9 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">All locations</SelectItem>
+                    <SelectItem value={ALL_FILTER_VALUE}>
+                      All locations
+                    </SelectItem>
                     {locations.map((location) => (
                       <SelectItem key={location} value={location}>
                         {location}
