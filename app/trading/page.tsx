@@ -108,6 +108,8 @@ function TradingPageContent() {
     );
   });
 
+  const hasFilteredTrades = filteredTrades.length > 0;
+
   const commodityFilterLabel = useMemo(() => {
     if (!commodityIdFilter) return undefined;
     return commodities.find((commodity) => commodity.id === commodityIdFilter)
@@ -145,7 +147,7 @@ function TradingPageContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Trading</h1>
           <p className="text-slate-600 mt-2">
@@ -281,8 +283,9 @@ function TradingPageContent() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-3 px-4 font-medium text-slate-600">
@@ -328,7 +331,7 @@ function TradingPageContent() {
                       again shortly.
                     </td>
                   </tr>
-                ) : filteredTrades.length === 0 ? (
+                ) : !hasFilteredTrades ? (
                   <tr>
                     <td
                       colSpan={10}
@@ -403,6 +406,100 @@ function TradingPageContent() {
               </tbody>
             </table>
           </div>
+        </div>
+        <div className="space-y-4 md:hidden">
+          {error ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+              Unable to load trades. Please refresh the page or try again
+              shortly.
+            </div>
+          ) : !hasFilteredTrades ? (
+            <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+              No trades match your current filters.
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setTypeFilter("all");
+                    if (commodityIdFilter) {
+                      router.push("/trading");
+                    }
+                  }}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            </div>
+          ) : (
+            filteredTrades.map((trade) => (
+              <div
+                key={trade.id}
+                className="rounded-xl border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-card-foreground">
+                      {trade.commodity.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{trade.id}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={getStatusColor(trade.status)}>
+                      {trade.status}
+                    </Badge>
+                    <Badge className={getTypeColor(trade.type)}>
+                      {trade.type}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Quantity</p>
+                    <p className="font-medium text-card-foreground">
+                      {trade.quantity.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Price</p>
+                    <p className="font-medium text-card-foreground">
+                      ${trade.price.toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Counterparty</p>
+                    <p className="font-medium text-card-foreground">
+                      {trade.counterparty.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Trade Date</p>
+                    <p className="font-medium text-card-foreground">
+                      {new Date(trade.tradeDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Total Value
+                    </p>
+                    <p className="text-lg font-semibold text-card-foreground">
+                      ${trade.totalValue.toLocaleString()}
+                    </p>
+                  </div>
+                  <Link href={`/trading/${trade.id}`}>
+                    <Button size="sm" variant="secondary">
+                      View trade
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
         </CardContent>
       </Card>
 

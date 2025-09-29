@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { CommodityModal } from "@/components/modals/commodity-modal";
+import { cn } from "@/lib/utils";
 import { useCommodities } from "@/lib/hooks/use-commodities";
 import type {
   CommodityFilters,
@@ -114,6 +115,8 @@ export default function CommoditiesPage() {
       commodity.name.toLowerCase().includes(lowerSearch),
     );
   }, [commodities, searchTerm]);
+
+  const hasFilteredCommodities = filteredBySearch.length > 0;
   const renderSkeletonRows = () => (
     <tbody>
       {Array.from({ length: 6 }).map((_, index) => (
@@ -240,8 +243,10 @@ export default function CommoditiesPage() {
             </div>
           )}
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <CardContent>
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                 <th className="py-3 px-4 text-left">Name</th>
@@ -259,7 +264,7 @@ export default function CommoditiesPage() {
             </thead>
             {isLoading ? (
               renderSkeletonRows()
-            ) : filteredBySearch.length === 0 ? (
+            ) : !hasFilteredCommodities ? (
               <tbody>
                 <tr>
                   <td colSpan={11} className="py-10 text-center text-slate-500">
@@ -338,20 +343,129 @@ export default function CommoditiesPage() {
               </tbody>
             )}
           </table>
-          {isFetching && !isLoading && (
-            <div className="mt-4 text-center text-xs text-slate-500">
-              Updating data...
+        </div>
+      </div>
+      <div className="space-y-4 md:hidden">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="rounded-xl border border-border bg-card p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-24" />
+              </div>
             </div>
-          )}
-          {error && (
-            <div className="mt-4 flex flex-col items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              <span>We couldn&apos;t load the commodities list.</span>
-              <Button variant="destructive" size="sm" onClick={() => refetch()}>
-                Try again
+          ))
+        ) : !hasFilteredCommodities ? (
+          <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+            No commodities match the current filters.
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                Refresh list
               </Button>
             </div>
-          )}
-        </CardContent>
+          </div>
+        ) : (
+          filteredBySearch.map((commodity: CommodityListItem) => (
+            <div
+              key={commodity.id}
+              className="rounded-xl border border-border bg-card p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-card-foreground">
+                    {commodity.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {commodity.unit}
+                  </p>
+                </div>
+                <Badge className={getTypeColor(commodity.type)}>
+                  {commodity.type}
+                </Badge>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                <div>
+                  <p className="text-xs uppercase tracking-wide">Price</p>
+                  <p className="font-medium text-card-foreground">
+                    ${commodity.currentPrice.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">Change</p>
+                  <p
+                    className={cn(
+                      "font-medium",
+                      commodity.priceChange >= 0
+                        ? "text-green-600"
+                        : "text-red-600",
+                    )}
+                  >
+                    {commodity.priceChange >= 0 ? "+" : ""}
+                    {commodity.priceChange.toFixed(2)} ({
+                      commodity.priceChangePercent >= 0 ? "+" : ""
+                    }
+                    {commodity.priceChangePercent.toFixed(1)}%)
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">Trades</p>
+                  <p className="font-medium text-card-foreground">
+                    {commodity._count.trades}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">Contracts</p>
+                  <p className="font-medium text-card-foreground">
+                    {commodity._count.contracts}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">Lots</p>
+                  <p className="font-medium text-card-foreground">
+                    {commodity._count.inventory}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">Shipments</p>
+                  <p className="font-medium text-card-foreground">
+                    {commodity._count.shipments}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <Link href={`/commodities/${commodity.id}`}>
+                  <Button size="sm" variant="secondary">
+                    View commodity
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      {isFetching && !isLoading && (
+        <div className="mt-4 text-center text-xs text-slate-500">
+          Updating data...
+        </div>
+      )}
+      {error && (
+        <div className="mt-4 flex flex-col items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <span>We couldn&apos;t load the commodities list.</span>
+          <Button variant="destructive" size="sm" onClick={() => refetch()}>
+            Try again
+          </Button>
+        </div>
+      )}
+    </CardContent>
       </Card>
     </div>
   );

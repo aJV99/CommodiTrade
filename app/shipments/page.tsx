@@ -74,6 +74,8 @@ function ShipmentsPageContent() {
     });
   }, [shipments, searchTerm, statusFilter]);
 
+  const hasFilteredShipments = filteredShipments.length > 0;
+
   const commodityFilterLabel = useMemo(() => {
     if (!commodityIdFilter) return undefined;
     return commodities.find((commodity) => commodity.id === commodityIdFilter)
@@ -261,8 +263,9 @@ function ShipmentsPageContent() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-3 px-4 font-medium text-slate-600">
@@ -298,11 +301,12 @@ function ShipmentsPageContent() {
                 </tr>
               </thead>
               <tbody>
-                {filteredShipments.map((shipment) => (
-                  <tr
-                    key={shipment.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
+                {hasFilteredShipments ? (
+                  filteredShipments.map((shipment) => (
+                    <tr
+                      key={shipment.id}
+                      className="border-b border-slate-100 hover:bg-slate-50"
+                    >
                     <td className="py-3 px-4 font-medium text-slate-900">
                       <Link
                         href={`/shipments/${shipment.id}`}
@@ -357,18 +361,106 @@ function ShipmentsPageContent() {
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/shipments/${shipment.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </Link>
+                      <td className="py-3 px-4">
+                        <Link href={`/shipments/${shipment.id}`}>
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
+                      No shipments match your filters right now.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
+        </div>
+        <div className="space-y-4 md:hidden">
+          {!hasFilteredShipments ? (
+            <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+              No shipments match your filters right now.
+            </div>
+          ) : (
+            filteredShipments.map((shipment) => (
+              <div
+                key={shipment.id}
+                className="rounded-xl border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-card-foreground">
+                      {shipment.commodity.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {shipment.origin} → {shipment.destination}
+                    </p>
+                  </div>
+                  <Badge className={getStatusColor(shipment.status)}>
+                    {getStatusLabel(shipment.status)}
+                  </Badge>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Quantity</p>
+                    <p className="font-medium text-card-foreground">
+                      {shipment.quantity.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Carrier</p>
+                    <p className="font-medium text-card-foreground">
+                      {shipment.carrier}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Tracking</p>
+                    <p className="font-mono text-xs text-card-foreground">
+                      {shipment.trackingNumber}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Departure</p>
+                    <p className="font-medium text-card-foreground">
+                      {shipment.departureDate
+                        ? new Date(shipment.departureDate).toLocaleDateString()
+                        : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">ETA</p>
+                    <p className="font-medium text-card-foreground">
+                      {shipment.expectedArrival
+                        ? new Date(shipment.expectedArrival).toLocaleDateString()
+                        : "-"}
+                    </p>
+                  </div>
+                  {shipment.actualArrival && (
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Delivered</p>
+                      <p className="font-medium text-card-foreground text-green-600">
+                        {new Date(shipment.actualArrival).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button size="sm" variant="secondary" asChild>
+                    <Link href={`/shipments/${shipment.id}`}>Track shipment</Link>
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
         </CardContent>
       </Card>
     </div>

@@ -106,6 +106,8 @@ export function ContractsPageClient({
     });
   }, [contracts, searchTerm, statusFilter, typeFilter]);
 
+  const hasFilteredContracts = filteredContracts.length > 0;
+
   const totalContractValue = useMemo(
     () => contracts.reduce((sum, contract) => sum + contract.totalValue, 0),
     [contracts],
@@ -273,9 +275,10 @@ export function ContractsPageClient({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            {filteredContracts.length > 0 ? (
-              <table className="w-full">
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              {hasFilteredContracts ? (
+                <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-medium text-slate-600">
@@ -400,7 +403,101 @@ export function ContractsPageClient({
               </div>
             )}
           </div>
-        </CardContent>
+        </div>
+        <div className="space-y-4 md:hidden">
+          {!hasFilteredContracts ? (
+            <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+              No contracts match your filters.
+            </div>
+          ) : (
+            filteredContracts.map((contract) => {
+              const progressPercent =
+                contract.quantity > 0
+                  ? Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        (contract.executed / contract.quantity) * 100,
+                      ),
+                    )
+                  : 0;
+
+              return (
+                <div
+                  key={contract.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">
+                        {contract.commodity?.name ?? "Unknown commodity"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {contract.counterparty?.name ?? "Unassigned"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge className={getStatusColor(contract.status)}>
+                        {statusLabels[contract.status]}
+                      </Badge>
+                      <Badge className={getTypeColor(contract.type)}>
+                        {typeLabels[contract.type]}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Quantity</p>
+                      <p className="font-medium text-card-foreground">
+                        {contract.quantity.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Price</p>
+                      <p className="font-medium text-card-foreground">
+                        ${contract.price.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Executed</p>
+                      <p className="font-medium text-card-foreground">
+                        {contract.executed.toLocaleString()} units
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Total value</p>
+                      <p className="font-medium text-card-foreground">
+                        ${contract.totalValue.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 flex-1 rounded-full bg-slate-200">
+                        <div
+                          className="h-2 rounded-full bg-blue-600"
+                          style={{ width: `${progressPercent}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {progressPercent.toFixed(0)}%
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Ends {formatDate(contract.endDate)}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/contracts/${contract.id}`}>View contract</Link>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </CardContent>
       </Card>
     </div>
   );
