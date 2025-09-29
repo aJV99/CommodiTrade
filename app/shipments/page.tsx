@@ -266,201 +266,219 @@ function ShipmentsPageContent() {
           <div className="hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Shipment ID
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Commodity
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Quantity
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Route
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Carrier
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Tracking
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Departure
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Expected Arrival
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {hasFilteredShipments ? (
-                  filteredShipments.map((shipment) => (
-                    <tr
-                      key={shipment.id}
-                      className="border-b border-slate-100 hover:bg-slate-50"
-                    >
-                    <td className="py-3 px-4 font-medium text-slate-900">
-                      <Link
-                        href={`/shipments/${shipment.id}`}
-                        className="hover:underline"
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Shipment ID
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Commodity
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Quantity
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Route
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Carrier
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Tracking
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Departure
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Expected Arrival
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hasFilteredShipments ? (
+                    filteredShipments.map((shipment) => (
+                      <tr
+                        key={shipment.id}
+                        className="border-b border-slate-100 hover:bg-slate-50"
                       >
-                        {shipment.id}
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {shipment.commodity.name}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {shipment.quantity.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      <div className="flex items-center space-x-1">
-                        <span>{shipment.origin}</span>
-                        <span className="text-slate-400">→</span>
-                        <span>{shipment.destination}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {shipment.carrier}
-                    </td>
-                    <td className="py-3 px-4">
-                      <code className="text-xs bg-slate-100 px-2 py-1 rounded">
+                        <td className="py-3 px-4 font-medium text-slate-900">
+                          <Link
+                            href={`/shipments/${shipment.id}`}
+                            className="hover:underline"
+                          >
+                            {shipment.id}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {shipment.commodity.name}
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {shipment.quantity.toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          <div className="flex items-center space-x-1">
+                            <span>{shipment.origin}</span>
+                            <span className="text-slate-400">→</span>
+                            <span>{shipment.destination}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {shipment.carrier}
+                        </td>
+                        <td className="py-3 px-4">
+                          <code className="text-xs bg-slate-100 px-2 py-1 rounded">
+                            {shipment.trackingNumber}
+                          </code>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge className={getStatusColor(shipment.status)}>
+                            {getStatusLabel(shipment.status)}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {shipment.departureDate
+                            ? new Date(
+                                shipment.departureDate,
+                              ).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {shipment.expectedArrival
+                            ? new Date(
+                                shipment.expectedArrival,
+                              ).toLocaleDateString()
+                            : "-"}
+                          {shipment.actualArrival && (
+                            <div className="text-xs text-green-600 mt-1">
+                              Delivered:{" "}
+                              {new Date(
+                                shipment.actualArrival,
+                              ).toLocaleDateString()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Link href={`/shipments/${shipment.id}`}>
+                            <Button variant="ghost" size="sm">
+                              View
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="py-10 text-center text-sm text-muted-foreground"
+                      >
+                        No shipments match your filters right now.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="space-y-4 md:hidden">
+            {!hasFilteredShipments ? (
+              <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                No shipments match your filters right now.
+              </div>
+            ) : (
+              filteredShipments.map((shipment) => (
+                <div
+                  key={shipment.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">
+                        {shipment.commodity.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {shipment.origin} → {shipment.destination}
+                      </p>
+                    </div>
+                    <Badge className={getStatusColor(shipment.status)}>
+                      {getStatusLabel(shipment.status)}
+                    </Badge>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">
+                        Quantity
+                      </p>
+                      <p className="font-medium text-card-foreground">
+                        {shipment.quantity.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Carrier</p>
+                      <p className="font-medium text-card-foreground">
+                        {shipment.carrier}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">
+                        Tracking
+                      </p>
+                      <p className="font-mono text-xs text-card-foreground">
                         {shipment.trackingNumber}
-                      </code>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge className={getStatusColor(shipment.status)}>
-                        {getStatusLabel(shipment.status)}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {shipment.departureDate
-                        ? new Date(shipment.departureDate).toLocaleDateString()
-                        : "-"}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {shipment.expectedArrival
-                        ? new Date(
-                            shipment.expectedArrival,
-                          ).toLocaleDateString()
-                        : "-"}
-                      {shipment.actualArrival && (
-                        <div className="text-xs text-green-600 mt-1">
-                          Delivered:{" "}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">
+                        Departure
+                      </p>
+                      <p className="font-medium text-card-foreground">
+                        {shipment.departureDate
+                          ? new Date(
+                              shipment.departureDate,
+                            ).toLocaleDateString()
+                          : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">ETA</p>
+                      <p className="font-medium text-card-foreground">
+                        {shipment.expectedArrival
+                          ? new Date(
+                              shipment.expectedArrival,
+                            ).toLocaleDateString()
+                          : "-"}
+                      </p>
+                    </div>
+                    {shipment.actualArrival && (
+                      <div>
+                        <p className="text-xs uppercase tracking-wide">
+                          Delivered
+                        </p>
+                        <p className="font-medium text-card-foreground text-green-600">
                           {new Date(
                             shipment.actualArrival,
                           ).toLocaleDateString()}
-                        </div>
-                      )}
-                    </td>
-                      <td className="py-3 px-4">
-                        <Link href={`/shipments/${shipment.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={10}
-                      className="py-10 text-center text-sm text-muted-foreground"
-                    >
-                      No shipments match your filters right now.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/shipments/${shipment.id}`}>
+                        Track shipment
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        </div>
-        <div className="space-y-4 md:hidden">
-          {!hasFilteredShipments ? (
-            <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
-              No shipments match your filters right now.
-            </div>
-          ) : (
-            filteredShipments.map((shipment) => (
-              <div
-                key={shipment.id}
-                className="rounded-xl border border-border bg-card p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-card-foreground">
-                      {shipment.commodity.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {shipment.origin} → {shipment.destination}
-                    </p>
-                  </div>
-                  <Badge className={getStatusColor(shipment.status)}>
-                    {getStatusLabel(shipment.status)}
-                  </Badge>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide">Quantity</p>
-                    <p className="font-medium text-card-foreground">
-                      {shipment.quantity.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide">Carrier</p>
-                    <p className="font-medium text-card-foreground">
-                      {shipment.carrier}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide">Tracking</p>
-                    <p className="font-mono text-xs text-card-foreground">
-                      {shipment.trackingNumber}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide">Departure</p>
-                    <p className="font-medium text-card-foreground">
-                      {shipment.departureDate
-                        ? new Date(shipment.departureDate).toLocaleDateString()
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide">ETA</p>
-                    <p className="font-medium text-card-foreground">
-                      {shipment.expectedArrival
-                        ? new Date(shipment.expectedArrival).toLocaleDateString()
-                        : "-"}
-                    </p>
-                  </div>
-                  {shipment.actualArrival && (
-                    <div>
-                      <p className="text-xs uppercase tracking-wide">Delivered</p>
-                      <p className="font-medium text-card-foreground text-green-600">
-                        {new Date(shipment.actualArrival).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button size="sm" variant="secondary" asChild>
-                    <Link href={`/shipments/${shipment.id}`}>Track shipment</Link>
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
         </CardContent>
       </Card>
     </div>

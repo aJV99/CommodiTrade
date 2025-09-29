@@ -260,7 +260,9 @@ export function CounterpartyTable({
                       {counterparty.contactPerson}
                     </p>
                   </div>
-                  <Badge className={`${typeColors[counterparty.type]} font-medium`}>
+                  <Badge
+                    className={`${typeColors[counterparty.type]} font-medium`}
+                  >
                     {typeLabels[counterparty.type]}
                   </Badge>
                 </div>
@@ -273,12 +275,16 @@ export function CounterpartyTable({
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wide">Rating</p>
-                    <Badge className={`${ratingColors[counterparty.rating]} font-semibold`}>
+                    <Badge
+                      className={`${ratingColors[counterparty.rating]} font-semibold`}
+                    >
                       {counterparty.rating}
                     </Badge>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-xs uppercase tracking-wide">Credit utilization</p>
+                    <p className="text-xs uppercase tracking-wide">
+                      Credit utilization
+                    </p>
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span>{formatCurrency(creditUsed)}</span>
@@ -289,7 +295,9 @@ export function CounterpartyTable({
                       <Progress value={utilization} />
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{utilization.toFixed(1)}% used</span>
-                        <span>Avail. {formatCurrency(Math.max(0, available))}</span>
+                        <span>
+                          Avail. {formatCurrency(Math.max(0, available))}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -302,7 +310,8 @@ export function CounterpartyTable({
                   <div>
                     <p className="text-xs uppercase tracking-wide">Contracts</p>
                     <p className="font-medium text-card-foreground">
-                      {counterparty._count?.contracts ?? 0} ({activeContracts} active)
+                      {counterparty._count?.contracts ?? 0} ({activeContracts}{" "}
+                      active)
                     </p>
                   </div>
                   <div className="col-span-2">
@@ -314,13 +323,25 @@ export function CounterpartyTable({
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => onView(counterparty.id)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onView(counterparty.id)}
+                  >
                     View profile
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onEdit(counterparty)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onEdit(counterparty)}
+                  >
                     Edit
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onCredit(counterparty)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onCredit(counterparty)}
+                  >
                     Update credit
                   </Button>
                   <Button

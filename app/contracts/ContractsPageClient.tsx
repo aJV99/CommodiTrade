@@ -279,225 +279,235 @@ export function ContractsPageClient({
             <div className="overflow-x-auto">
               {hasFilteredContracts ? (
                 <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Contract ID
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Commodity
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Counterparty
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Type
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Quantity
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Price
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Total Value
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Progress
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      End Date
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredContracts.map((contract) => {
-                    const progressPercent =
-                      contract.quantity > 0
-                        ? Math.min(
-                            100,
-                            Math.max(
-                              0,
-                              (contract.executed / contract.quantity) * 100,
-                            ),
-                          )
-                        : 0;
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Contract ID
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Commodity
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Counterparty
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Type
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Quantity
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Price
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Total Value
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Progress
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        End Date
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-600">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredContracts.map((contract) => {
+                      const progressPercent =
+                        contract.quantity > 0
+                          ? Math.min(
+                              100,
+                              Math.max(
+                                0,
+                                (contract.executed / contract.quantity) * 100,
+                              ),
+                            )
+                          : 0;
 
-                    return (
-                      <tr
-                        key={contract.id}
-                        className="border-b border-slate-100 hover:bg-slate-50"
-                      >
-                        <td className="py-3 px-4 font-medium text-slate-900">
-                          {contract.id}
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          {contract.commodity?.name}
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          {contract.counterparty?.name}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={getTypeColor(contract.type)}>
-                            {typeLabels[contract.type]}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          {contract.quantity.toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          ${contract.price.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 font-medium text-slate-900">
-                          ${contract.totalValue.toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex-1 bg-slate-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full"
-                                style={{ width: `${progressPercent}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-slate-600">
-                              {progressPercent.toFixed(0)}%
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-500 mt-1">
-                            {contract.executed.toLocaleString()} /{" "}
+                      return (
+                        <tr
+                          key={contract.id}
+                          className="border-b border-slate-100 hover:bg-slate-50"
+                        >
+                          <td className="py-3 px-4 font-medium text-slate-900">
+                            {contract.id}
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {contract.commodity?.name}
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {contract.counterparty?.name}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className={getTypeColor(contract.type)}>
+                              {typeLabels[contract.type]}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
                             {contract.quantity.toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={getStatusColor(contract.status)}>
-                            {statusLabels[contract.status]}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          {formatDate(contract.endDate)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/contracts/${contract.id}`}>View</Link>
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="py-12 text-center">
-                <p className="text-sm font-medium text-slate-900">
-                  No contracts match your filters.
-                </p>
-                <p className="text-sm text-slate-600 mt-1">
-                  Try adjusting the search or filter criteria.
-                </p>
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            ${contract.price.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-slate-900">
+                            ${contract.totalValue.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-2">
+                              <div className="flex-1 bg-slate-200 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{ width: `${progressPercent}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-slate-600">
+                                {progressPercent.toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1">
+                              {contract.executed.toLocaleString()} /{" "}
+                              {contract.quantity.toLocaleString()}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className={getStatusColor(contract.status)}>
+                              {statusLabels[contract.status]}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {formatDate(contract.endDate)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/contracts/${contract.id}`}>
+                                View
+                              </Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="text-sm font-medium text-slate-900">
+                    No contracts match your filters.
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Try adjusting the search or filter criteria.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="space-y-4 md:hidden">
+            {!hasFilteredContracts ? (
+              <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                No contracts match your filters.
               </div>
+            ) : (
+              filteredContracts.map((contract) => {
+                const progressPercent =
+                  contract.quantity > 0
+                    ? Math.min(
+                        100,
+                        Math.max(
+                          0,
+                          (contract.executed / contract.quantity) * 100,
+                        ),
+                      )
+                    : 0;
+
+                return (
+                  <div
+                    key={contract.id}
+                    className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-card-foreground">
+                          {contract.commodity?.name ?? "Unknown commodity"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {contract.counterparty?.name ?? "Unassigned"}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={getStatusColor(contract.status)}>
+                          {statusLabels[contract.status]}
+                        </Badge>
+                        <Badge className={getTypeColor(contract.type)}>
+                          {typeLabels[contract.type]}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide">
+                          Quantity
+                        </p>
+                        <p className="font-medium text-card-foreground">
+                          {contract.quantity.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide">Price</p>
+                        <p className="font-medium text-card-foreground">
+                          ${contract.price.toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide">
+                          Executed
+                        </p>
+                        <p className="font-medium text-card-foreground">
+                          {contract.executed.toLocaleString()} units
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide">
+                          Total value
+                        </p>
+                        <p className="font-medium text-card-foreground">
+                          ${contract.totalValue.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 flex-1 rounded-full bg-slate-200">
+                          <div
+                            className="h-2 rounded-full bg-blue-600"
+                            style={{ width: `${progressPercent}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {progressPercent.toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ends {formatDate(contract.endDate)}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <Button size="sm" variant="secondary" asChild>
+                        <Link href={`/contracts/${contract.id}`}>
+                          View contract
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        </div>
-        <div className="space-y-4 md:hidden">
-          {!hasFilteredContracts ? (
-            <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
-              No contracts match your filters.
-            </div>
-          ) : (
-            filteredContracts.map((contract) => {
-              const progressPercent =
-                contract.quantity > 0
-                  ? Math.min(
-                      100,
-                      Math.max(
-                        0,
-                        (contract.executed / contract.quantity) * 100,
-                      ),
-                    )
-                  : 0;
-
-              return (
-                <div
-                  key={contract.id}
-                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-card-foreground">
-                        {contract.commodity?.name ?? "Unknown commodity"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {contract.counterparty?.name ?? "Unassigned"}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Badge className={getStatusColor(contract.status)}>
-                        {statusLabels[contract.status]}
-                      </Badge>
-                      <Badge className={getTypeColor(contract.type)}>
-                        {typeLabels[contract.type]}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide">Quantity</p>
-                      <p className="font-medium text-card-foreground">
-                        {contract.quantity.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide">Price</p>
-                      <p className="font-medium text-card-foreground">
-                        ${contract.price.toFixed(2)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide">Executed</p>
-                      <p className="font-medium text-card-foreground">
-                        {contract.executed.toLocaleString()} units
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide">Total value</p>
-                      <p className="font-medium text-card-foreground">
-                        ${contract.totalValue.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 flex-1 rounded-full bg-slate-200">
-                        <div
-                          className="h-2 rounded-full bg-blue-600"
-                          style={{ width: `${progressPercent}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {progressPercent.toFixed(0)}%
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Ends {formatDate(contract.endDate)}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button size="sm" variant="secondary" asChild>
-                      <Link href={`/contracts/${contract.id}`}>View contract</Link>
-                    </Button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </CardContent>
+        </CardContent>
       </Card>
     </div>
   );
