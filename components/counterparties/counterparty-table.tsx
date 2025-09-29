@@ -86,154 +86,279 @@ export function CounterpartyTable({
   emptyMessage = "No counterparties match your filters.",
   pagination,
 }: CounterpartyTableProps) {
+  const hasData = data.length > 0;
+
+  const renderDesktopRow = (counterparty: CounterpartyTableRow) => {
+    const creditLimit = counterparty.creditLimit || 0;
+    const creditUsed = counterparty.creditUsed || 0;
+    const utilization =
+      creditLimit > 0 ? Math.min(100, (creditUsed / creditLimit) * 100) : 0;
+    const available = creditLimit - creditUsed;
+    const activeContracts = counterparty.contracts.filter(
+      (contract) => contract.status === "ACTIVE",
+    ).length;
+
+    return (
+      <TableRow key={counterparty.id} className="bg-white">
+        <TableCell>
+          <div className="space-y-1">
+            <div className="font-semibold text-slate-900">
+              {counterparty.name}
+            </div>
+            <div className="text-sm text-slate-500">
+              {counterparty.contactPerson}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge className={`${typeColors[counterparty.type]} font-medium`}>
+            {typeLabels[counterparty.type]}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-slate-700">{counterparty.country}</TableCell>
+        <TableCell>
+          <Badge
+            className={`${ratingColors[counterparty.rating]} font-semibold`}
+          >
+            {counterparty.rating}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm text-slate-600">
+              <span>{formatCurrency(creditUsed)}</span>
+              <span className="font-medium text-slate-900">
+                {formatCurrency(creditLimit)}
+              </span>
+            </div>
+            <Progress value={utilization} />
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>{utilization.toFixed(1)}% used</span>
+              <span>Avail. {formatCurrency(Math.max(0, available))}</span>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1 text-sm">
+            <div className="font-semibold text-slate-900">
+              {counterparty.totalTrades}
+            </div>
+            <div className="text-slate-500">
+              Volume {counterparty.totalVolume.toLocaleString()}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1 text-sm">
+            <div className="font-semibold text-slate-900">
+              {counterparty._count?.contracts ?? 0}
+            </div>
+            <div className="text-slate-500">{activeContracts} active</div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1 text-sm text-slate-600">
+            <div>{counterparty.email}</div>
+            <div>{counterparty.phone}</div>
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => onView(counterparty.id)}>
+                View profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(counterparty)}>
+                Edit details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCredit(counterparty)}>
+                Update credit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={() => onDelete(counterparty)}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-lg border border-slate-200">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-[220px]">Company</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Country</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead className="min-w-[180px]">Credit exposure</TableHead>
-              <TableHead>Total trades</TableHead>
-              <TableHead>Contracts</TableHead>
-              <TableHead className="min-w-[200px]">Contact</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((counterparty) => {
-              const creditLimit = counterparty.creditLimit || 0;
-              const creditUsed = counterparty.creditUsed || 0;
-              const utilization =
-                creditLimit > 0
-                  ? Math.min(100, (creditUsed / creditLimit) * 100)
-                  : 0;
-              const available = creditLimit - creditUsed;
-              const activeContracts = counterparty.contracts.filter(
-                (contract) => contract.status === "ACTIVE",
-              ).length;
+      <div className="hidden md:block">
+        <div className="overflow-hidden rounded-lg border border-slate-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[220px]">Company</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Country</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead className="min-w-[180px]">Credit exposure</TableHead>
+                <TableHead>Total trades</TableHead>
+                <TableHead>Contracts</TableHead>
+                <TableHead className="min-w-[200px]">Contact</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {hasData ? (
+                data.map(renderDesktopRow)
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="h-32 text-center text-sm text-slate-500"
+                  >
+                    {emptyMessage}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
-              return (
-                <TableRow key={counterparty.id} className="bg-white">
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-semibold text-slate-900">
-                        {counterparty.name}
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        {counterparty.contactPerson}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={`${typeColors[counterparty.type]} font-medium`}
-                    >
-                      {typeLabels[counterparty.type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-700">
-                    {counterparty.country}
-                  </TableCell>
-                  <TableCell>
+      <div className="space-y-4 md:hidden">
+        {!hasData ? (
+          <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </div>
+        ) : (
+          data.map((counterparty) => {
+            const creditLimit = counterparty.creditLimit || 0;
+            const creditUsed = counterparty.creditUsed || 0;
+            const utilization =
+              creditLimit > 0
+                ? Math.min(100, (creditUsed / creditLimit) * 100)
+                : 0;
+            const available = creditLimit - creditUsed;
+            const activeContracts = counterparty.contracts.filter(
+              (contract) => contract.status === "ACTIVE",
+            ).length;
+
+            return (
+              <div
+                key={counterparty.id}
+                className="rounded-xl border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-card-foreground">
+                      {counterparty.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {counterparty.contactPerson}
+                    </p>
+                  </div>
+                  <Badge
+                    className={`${typeColors[counterparty.type]} font-medium`}
+                  >
+                    {typeLabels[counterparty.type]}
+                  </Badge>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Country</p>
+                    <p className="font-medium text-card-foreground">
+                      {counterparty.country}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Rating</p>
                     <Badge
                       className={`${ratingColors[counterparty.rating]} font-semibold`}
                     >
                       {counterparty.rating}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm text-slate-600">
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs uppercase tracking-wide">
+                      Credit utilization
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
                         <span>{formatCurrency(creditUsed)}</span>
-                        <span className="font-medium text-slate-900">
+                        <span className="font-medium text-card-foreground">
                           {formatCurrency(creditLimit)}
                         </span>
                       </div>
                       <Progress value={utilization} />
-                      <div className="flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{utilization.toFixed(1)}% used</span>
                         <span>
                           Avail. {formatCurrency(Math.max(0, available))}
                         </span>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-sm">
-                      <div className="font-semibold text-slate-900">
-                        {counterparty.totalTrades}
-                      </div>
-                      <div className="text-slate-500">
-                        Volume {counterparty.totalVolume.toLocaleString()}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-sm">
-                      <div className="font-semibold text-slate-900">
-                        {counterparty._count?.contracts ?? 0}
-                      </div>
-                      <div className="text-slate-500">
-                        {activeContracts} active
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-sm text-slate-600">
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Trades</p>
+                    <p className="font-medium text-card-foreground">
+                      {counterparty.totalTrades}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">Contracts</p>
+                    <p className="font-medium text-card-foreground">
+                      {counterparty._count?.contracts ?? 0} ({activeContracts}{" "}
+                      active)
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs uppercase tracking-wide">Contact</p>
+                    <div className="mt-1 space-y-1 text-xs text-muted-foreground">
                       <div>{counterparty.email}</div>
                       <div>{counterparty.phone}</div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                          onClick={() => onView(counterparty.id)}
-                        >
-                          View profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(counterparty)}>
-                          Edit details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onCredit(counterparty)}
-                        >
-                          Update credit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
-                          onClick={() => onDelete(counterparty)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {data.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={9}
-                  className="h-32 text-center text-sm text-slate-500"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onView(counterparty.id)}
+                  >
+                    View profile
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onEdit(counterparty)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onCredit(counterparty)}
+                  >
+                    Update credit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => onDelete(counterparty)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
+
       {pagination && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-500">Page {pagination.page + 1}</p>

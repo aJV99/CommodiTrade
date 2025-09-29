@@ -217,6 +217,8 @@ export default function InventoryPage() {
     });
   }, [inventoryRecords, searchTerm]);
 
+  const hasFilteredInventory = filteredInventory.length > 0;
+
   const commodityOptions = useMemo(() => {
     const seen = new Map<string, string>();
     for (const item of inventoryRecords) {
@@ -304,6 +306,73 @@ export default function InventoryPage() {
   const averagePnLPercent = valuation?.averageUnrealizedPnLPercent ?? 0;
   const pnLTrendColor =
     averagePnLPercent >= 0 ? "text-green-600" : "text-red-600";
+
+  const renderInventoryActions = (
+    item: InventoryWithCommodity,
+    alignment: "start" | "end" = "end",
+  ) => {
+    return (
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2",
+          alignment === "end" ? "justify-end" : "justify-start",
+        )}
+      >
+        <InventoryHistoryDrawer
+          inventory={item}
+          trigger={
+            <Button variant="outline" size="sm">
+              History
+            </Button>
+          }
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              Manage
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <EditInventoryModal
+              inventory={item}
+              onUpdated={refetch}
+              trigger={
+                <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                  Edit details
+                </DropdownMenuItem>
+              }
+            />
+            <InventoryMovementModal
+              inventory={item}
+              onMovementProcessed={refetch}
+              trigger={
+                <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                  Adjust stock
+                </DropdownMenuItem>
+              }
+            />
+            <DeleteInventoryModal
+              inventory={item}
+              onDeleted={refetch}
+              trigger={
+                <DropdownMenuItem
+                  onSelect={(event) => event.preventDefault()}
+                  className="text-destructive focus:text-destructive"
+                >
+                  Remove lot
+                </DropdownMenuItem>
+              }
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -521,197 +590,271 @@ export default function InventoryPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                    <th className="py-3 px-4">Commodity</th>
-                    <th className="py-3 px-4">Quantity</th>
-                    <th className="py-3 px-4">Warehouse</th>
-                    <th className="py-3 px-4">Location</th>
-                    <th className="py-3 px-4">Quality</th>
-                    <th className="py-3 px-4">Cost basis</th>
-                    <th className="py-3 px-4">Market value</th>
-                    <th className="py-3 px-4">Unrealized P&L</th>
-                    <th className="py-3 px-4">Last updated</th>
-                    <th className="py-3 px-4">Quick links</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading && (
-                    <tr>
-                      <td colSpan={11} className="py-6">
-                        <div className="space-y-2">
-                          {Array.from({ length: 5 }).map((_, index) => (
-                            <Skeleton key={index} className="h-12 w-full" />
-                          ))}
-                        </div>
-                      </td>
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
+                      <th className="py-3 px-4">Commodity</th>
+                      <th className="py-3 px-4">Quantity</th>
+                      <th className="py-3 px-4">Warehouse</th>
+                      <th className="py-3 px-4">Location</th>
+                      <th className="py-3 px-4">Quality</th>
+                      <th className="py-3 px-4">Cost basis</th>
+                      <th className="py-3 px-4">Market value</th>
+                      <th className="py-3 px-4">Unrealized P&L</th>
+                      <th className="py-3 px-4">Last updated</th>
+                      <th className="py-3 px-4">Quick links</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  )}
+                  </thead>
+                  <tbody>
+                    {isLoading && (
+                      <tr>
+                        <td colSpan={11} className="py-6">
+                          <div className="space-y-2">
+                            {Array.from({ length: 5 }).map((_, index) => (
+                              <Skeleton key={index} className="h-12 w-full" />
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
 
-                  {!isLoading && filteredInventory.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={11}
-                        className="py-10 text-center text-sm text-muted-foreground"
-                      >
-                        No inventory records match your filters. Adjust the
-                        filters or add new stock.
-                      </td>
-                    </tr>
-                  )}
-
-                  {!isLoading &&
-                    filteredInventory.map((item) => {
-                      const unrealizedPnLPerUnit =
-                        item.marketValue - item.costBasis;
-                      const unrealizedPnL =
-                        unrealizedPnLPerUnit * item.quantity;
-                      const unrealizedPnLPercent =
-                        item.costBasis > 0
-                          ? (unrealizedPnLPerUnit / item.costBasis) * 100
-                          : 0;
-
-                      return (
-                        <tr
-                          key={item.id}
-                          className="border-b border-slate-100 transition hover:bg-slate-50"
+                    {!isLoading && !hasFilteredInventory && (
+                      <tr>
+                        <td
+                          colSpan={11}
+                          className="py-10 text-center text-sm text-muted-foreground"
                         >
-                          <td className="py-3 px-4 font-semibold text-slate-900">
-                            {item.commodity.name}
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
-                            {item.quantity.toLocaleString()} {item.unit}
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
-                            {item.warehouse}
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
-                            {item.location}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge variant="outline">{item.quality}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
-                            ${item.costBasis.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
-                            ${item.marketValue.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div
-                              className={cn(
-                                "font-medium",
-                                unrealizedPnL >= 0
-                                  ? "text-green-600"
-                                  : "text-red-600",
-                              )}
-                            >
-                              {formatCurrency(unrealizedPnL)}
-                              <div className="text-xs">
-                                ({unrealizedPnLPercent >= 0 ? "+" : ""}
-                                {unrealizedPnLPercent.toFixed(1)}%)
+                          No inventory records match your filters. Adjust the
+                          filters or add new stock.
+                        </td>
+                      </tr>
+                    )}
+
+                    {!isLoading &&
+                      filteredInventory.map((item) => {
+                        const unrealizedPnLPerUnit =
+                          item.marketValue - item.costBasis;
+                        const unrealizedPnL =
+                          unrealizedPnLPerUnit * item.quantity;
+                        const unrealizedPnLPercent =
+                          item.costBasis > 0
+                            ? (unrealizedPnLPerUnit / item.costBasis) * 100
+                            : 0;
+
+                        return (
+                          <tr
+                            key={item.id}
+                            className="border-b border-slate-100 transition hover:bg-slate-50"
+                          >
+                            <td className="py-3 px-4 font-semibold text-slate-900">
+                              {item.commodity.name}
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              {item.quantity.toLocaleString()} {item.unit}
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              {item.warehouse}
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              {item.location}
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge variant="outline">{item.quality}</Badge>
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              ${item.costBasis.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              ${item.marketValue.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div
+                                className={cn(
+                                  "font-medium",
+                                  unrealizedPnL >= 0
+                                    ? "text-green-600"
+                                    : "text-red-600",
+                                )}
+                              >
+                                {formatCurrency(unrealizedPnL)}
+                                <div className="text-xs">
+                                  ({unrealizedPnLPercent >= 0 ? "+" : ""}
+                                  {unrealizedPnLPercent.toFixed(1)}%)
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              {new Date(item.lastUpdated).toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">
+                              <div className="flex flex-col gap-1 text-xs">
+                                <Link
+                                  href={`/commodities/${item.commodityId}`}
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  Commodity
+                                </Link>
+                                <Link
+                                  href={`/trading?commodityId=${item.commodityId}`}
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  Related trades
+                                </Link>
+                                <Link
+                                  href={`/shipments?commodityId=${item.commodityId}`}
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  Active shipments
+                                </Link>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              {renderInventoryActions(item)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="space-y-4 md:hidden">
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                  >
+                    <Skeleton className="h-4 w-32" />
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                ))
+              ) : !hasFilteredInventory ? (
+                <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                  No inventory records match your filters. Adjust the filters or
+                  add new stock.
+                </div>
+              ) : (
+                filteredInventory.map((item) => {
+                  const unrealizedPnLPerUnit =
+                    item.marketValue - item.costBasis;
+                  const unrealizedPnL = unrealizedPnLPerUnit * item.quantity;
+                  const unrealizedPnLPercent =
+                    item.costBasis > 0
+                      ? (unrealizedPnLPerUnit / item.costBasis) * 100
+                      : 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-card-foreground">
+                            {item.commodity.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Last updated{" "}
                             {new Date(item.lastUpdated).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-slate-700">
-                            <div className="flex flex-col gap-1 text-xs">
-                              <Link
-                                href={`/commodities/${item.commodityId}`}
-                                className="text-blue-600 hover:underline"
-                              >
-                                Commodity
-                              </Link>
-                              <Link
-                                href={`/trading?commodityId=${item.commodityId}`}
-                                className="text-blue-600 hover:underline"
-                              >
-                                Related trades
-                              </Link>
-                              <Link
-                                href={`/shipments?commodityId=${item.commodityId}`}
-                                className="text-blue-600 hover:underline"
-                              >
-                                Active shipments
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <InventoryHistoryDrawer
-                                inventory={item}
-                                trigger={
-                                  <Button variant="outline" size="sm">
-                                    History
-                                  </Button>
-                                }
-                              />
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="flex items-center gap-1"
-                                  >
-                                    Manage
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <EditInventoryModal
-                                    inventory={item}
-                                    onUpdated={refetch}
-                                    trigger={
-                                      <DropdownMenuItem
-                                        onSelect={(event) =>
-                                          event.preventDefault()
-                                        }
-                                      >
-                                        Edit details
-                                      </DropdownMenuItem>
-                                    }
-                                  />
-                                  <InventoryMovementModal
-                                    inventory={item}
-                                    onMovementProcessed={refetch}
-                                    trigger={
-                                      <DropdownMenuItem
-                                        onSelect={(event) =>
-                                          event.preventDefault()
-                                        }
-                                      >
-                                        Adjust stock
-                                      </DropdownMenuItem>
-                                    }
-                                  />
-                                  <DeleteInventoryModal
-                                    inventory={item}
-                                    onDeleted={refetch}
-                                    trigger={
-                                      <DropdownMenuItem
-                                        onSelect={(event) =>
-                                          event.preventDefault()
-                                        }
-                                        className="text-destructive focus:text-destructive"
-                                      >
-                                        Remove lot
-                                      </DropdownMenuItem>
-                                    }
-                                  />
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+                          </p>
+                        </div>
+                        <Badge variant="outline">{item.quality}</Badge>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide">
+                            Quantity
+                          </p>
+                          <p className="font-medium text-card-foreground">
+                            {item.quantity.toLocaleString()} {item.unit}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide">
+                            Warehouse
+                          </p>
+                          <p className="font-medium text-card-foreground">
+                            {item.warehouse}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide">
+                            Location
+                          </p>
+                          <p className="font-medium text-card-foreground">
+                            {item.location}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide">
+                            Cost basis
+                          </p>
+                          <p className="font-medium text-card-foreground">
+                            ${item.costBasis.toFixed(2)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide">
+                            Market value
+                          </p>
+                          <p className="font-medium text-card-foreground">
+                            ${item.marketValue.toFixed(2)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide">
+                            Unrealized P&amp;L
+                          </p>
+                          <p
+                            className={cn(
+                              "font-medium",
+                              unrealizedPnL >= 0
+                                ? "text-green-600"
+                                : "text-red-600",
+                            )}
+                          >
+                            {formatCurrency(unrealizedPnL)} (
+                            {unrealizedPnLPercent >= 0 ? "+" : ""}
+                            {unrealizedPnLPercent.toFixed(1)}%)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs text-blue-600">
+                        <Link
+                          href={`/commodities/${item.commodityId}`}
+                          className="hover:underline"
+                        >
+                          Commodity overview
+                        </Link>
+                        <Link
+                          href={`/trading?commodityId=${item.commodityId}`}
+                          className="hover:underline"
+                        >
+                          Related trades
+                        </Link>
+                        <Link
+                          href={`/shipments?commodityId=${item.commodityId}`}
+                          className="hover:underline"
+                        >
+                          Active shipments
+                        </Link>
+                      </div>
+                      <div className="mt-4">
+                        {renderInventoryActions(item, "start")}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>

@@ -18,13 +18,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+      <body className={cn("h-screen bg-background font-sans antialiased")}>
         <QueryProvider>
           <div className="flex h-screen bg-muted">
-            <Sidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
+            <aside className="hidden border-r border-slate-800 bg-slate-900 lg:flex">
+              <Sidebar />
+            </aside>
+            <div className="flex flex-1 flex-col overflow-hidden">
               <Header />
-              <main className="flex-1 overflow-y-auto p-6">{children}</main>
+              <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+                {children}
+              </main>
             </div>
           </div>
         </QueryProvider>

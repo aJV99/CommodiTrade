@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { CommodityModal } from "@/components/modals/commodity-modal";
+import { cn } from "@/lib/utils";
 import { useCommodities } from "@/lib/hooks/use-commodities";
 import type {
   CommodityFilters,
@@ -114,6 +115,8 @@ export default function CommoditiesPage() {
       commodity.name.toLowerCase().includes(lowerSearch),
     );
   }, [commodities, searchTerm]);
+
+  const hasFilteredCommodities = filteredBySearch.length > 0;
   const renderSkeletonRows = () => (
     <tbody>
       {Array.from({ length: 6 }).map((_, index) => (
@@ -240,104 +243,221 @@ export default function CommoditiesPage() {
             </div>
           )}
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                <th className="py-3 px-4 text-left">Name</th>
-                <th className="py-3 px-4 text-left">Type</th>
-                <th className="py-3 px-4 text-left">Unit</th>
-                <th className="py-3 px-4 text-left">Current Price</th>
-                <th className="py-3 px-4 text-left">Change</th>
-                <th className="py-3 px-4 text-left">% Change</th>
-                <th className="py-3 px-4 text-left">Trades</th>
-                <th className="py-3 px-4 text-left">Inventory Lots</th>
-                <th className="py-3 px-4 text-left">Contracts</th>
-                <th className="py-3 px-4 text-left">Shipments</th>
-                <th className="py-3 px-4 text-left">Actions</th>
-              </tr>
-            </thead>
-            {isLoading ? (
-              renderSkeletonRows()
-            ) : filteredBySearch.length === 0 ? (
-              <tbody>
-                <tr>
-                  <td colSpan={11} className="py-10 text-center text-slate-500">
-                    No commodities match the current filters.
-                    <div className="mt-2">
-                      <Button variant="outline" onClick={() => refetch()}>
-                        Refresh list
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            ) : (
-              <tbody>
-                {filteredBySearch.map((commodity: CommodityListItem) => (
-                  <tr
-                    key={commodity.id}
-                    className="border-b border-slate-100 transition hover:bg-slate-50"
-                  >
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      {commodity.name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge className={getTypeColor(commodity.type)}>
-                        {commodity.type}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {commodity.unit}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      ${commodity.currentPrice.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {commodity.priceChange >= 0 ? "+" : ""}
-                      {commodity.priceChange.toFixed(2)}
-                    </td>
-                    <td
-                      className={`py-3 px-4 font-medium ${
-                        commodity.priceChange >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {commodity.priceChangePercent.toFixed(2)}%
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      <Badge variant="outline" className="font-medium">
-                        {commodity._count.trades}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      <Badge variant="outline" className="font-medium">
-                        {commodity._count.inventory}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      <Badge variant="outline" className="font-medium">
-                        {commodity._count.contracts}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      <Badge variant="outline" className="font-medium">
-                        {commodity._count.shipments}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/commodities/${commodity.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </Link>
-                    </td>
+        <CardContent>
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                    <th className="py-3 px-4 text-left">Name</th>
+                    <th className="py-3 px-4 text-left">Type</th>
+                    <th className="py-3 px-4 text-left">Unit</th>
+                    <th className="py-3 px-4 text-left">Current Price</th>
+                    <th className="py-3 px-4 text-left">Change</th>
+                    <th className="py-3 px-4 text-left">% Change</th>
+                    <th className="py-3 px-4 text-left">Trades</th>
+                    <th className="py-3 px-4 text-left">Inventory Lots</th>
+                    <th className="py-3 px-4 text-left">Contracts</th>
+                    <th className="py-3 px-4 text-left">Shipments</th>
+                    <th className="py-3 px-4 text-left">Actions</th>
                   </tr>
-                ))}
-              </tbody>
+                </thead>
+                {isLoading ? (
+                  renderSkeletonRows()
+                ) : !hasFilteredCommodities ? (
+                  <tbody>
+                    <tr>
+                      <td
+                        colSpan={11}
+                        className="py-10 text-center text-slate-500"
+                      >
+                        No commodities match the current filters.
+                        <div className="mt-2">
+                          <Button variant="outline" onClick={() => refetch()}>
+                            Refresh list
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                ) : (
+                  <tbody>
+                    {filteredBySearch.map((commodity: CommodityListItem) => (
+                      <tr
+                        key={commodity.id}
+                        className="border-b border-slate-100 transition hover:bg-slate-50"
+                      >
+                        <td className="py-3 px-4 font-semibold text-slate-900">
+                          {commodity.name}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge className={getTypeColor(commodity.type)}>
+                            {commodity.type}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {commodity.unit}
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          ${commodity.currentPrice.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {commodity.priceChange >= 0 ? "+" : ""}
+                          {commodity.priceChange.toFixed(2)}
+                        </td>
+                        <td
+                          className={`py-3 px-4 font-medium ${
+                            commodity.priceChange >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {commodity.priceChangePercent.toFixed(2)}%
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          <Badge variant="outline" className="font-medium">
+                            {commodity._count.trades}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          <Badge variant="outline" className="font-medium">
+                            {commodity._count.inventory}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          <Badge variant="outline" className="font-medium">
+                            {commodity._count.contracts}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">
+                          <Badge variant="outline" className="font-medium">
+                            {commodity._count.shipments}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Link href={`/commodities/${commodity.id}`}>
+                            <Button variant="ghost" size="sm">
+                              View
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                )}
+              </table>
+            </div>
+          </div>
+          <div className="space-y-4 md:hidden">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              ))
+            ) : !hasFilteredCommodities ? (
+              <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                No commodities match the current filters.
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => refetch()}>
+                    Refresh list
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              filteredBySearch.map((commodity: CommodityListItem) => (
+                <div
+                  key={commodity.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">
+                        {commodity.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {commodity.unit}
+                      </p>
+                    </div>
+                    <Badge className={getTypeColor(commodity.type)}>
+                      {commodity.type}
+                    </Badge>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Price</p>
+                      <p className="font-medium text-card-foreground">
+                        ${commodity.currentPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Change</p>
+                      <p
+                        className={cn(
+                          "font-medium",
+                          commodity.priceChange >= 0
+                            ? "text-green-600"
+                            : "text-red-600",
+                        )}
+                      >
+                        {commodity.priceChange >= 0 ? "+" : ""}
+                        {commodity.priceChange.toFixed(2)} (
+                        {commodity.priceChangePercent >= 0 ? "+" : ""}
+                        {commodity.priceChangePercent.toFixed(1)}%)
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Trades</p>
+                      <p className="font-medium text-card-foreground">
+                        {commodity._count.trades}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">
+                        Contracts
+                      </p>
+                      <p className="font-medium text-card-foreground">
+                        {commodity._count.contracts}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">Lots</p>
+                      <p className="font-medium text-card-foreground">
+                        {commodity._count.inventory}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide">
+                        Shipments
+                      </p>
+                      <p className="font-medium text-card-foreground">
+                        {commodity._count.shipments}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    <Link href={`/commodities/${commodity.id}`}>
+                      <Button size="sm" variant="secondary">
+                        View commodity
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))
             )}
-          </table>
+          </div>
           {isFetching && !isLoading && (
             <div className="mt-4 text-center text-xs text-slate-500">
               Updating data...
