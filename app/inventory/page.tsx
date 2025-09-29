@@ -40,18 +40,15 @@ import {
   useLowStockAlerts,
 } from "@/lib/hooks/use-inventory";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import {
+  cn,
+  ALL_SELECT_VALUE,
+  getAllSelectValue,
+  normalizeSelectValue,
+} from "@/lib/utils";
 import type { Commodity, InventoryItem } from "@prisma/client";
 
 const SAVED_VIEWS_STORAGE_KEY = "inventory-saved-views";
-const ALL_FILTER_VALUE = "__all__";
-
-const shouldResetFilter = (value: string) => {
-  if (!value) return true;
-  if (value === ALL_FILTER_VALUE) return true;
-  return value.toLowerCase() === "all";
-};
-
 type InventoryFilters = {
   commodityId?: string;
   warehouse?: string;
@@ -67,23 +64,23 @@ type SavedView = {
 const sanitizeFilters = (filters: InventoryFilters): InventoryFilters => {
   const sanitized: InventoryFilters = {};
 
-  if (filters.commodityId && !shouldResetFilter(filters.commodityId)) {
-    sanitized.commodityId = filters.commodityId;
+  const commodityId = normalizeSelectValue<string>(filters.commodityId);
+  if (commodityId) {
+    sanitized.commodityId = commodityId;
   }
 
-  if (filters.warehouse && !shouldResetFilter(filters.warehouse)) {
-    sanitized.warehouse = filters.warehouse;
+  const warehouse = normalizeSelectValue<string>(filters.warehouse);
+  if (warehouse) {
+    sanitized.warehouse = warehouse;
   }
 
-  if (filters.location && !shouldResetFilter(filters.location)) {
-    sanitized.location = filters.location;
+  const location = normalizeSelectValue<string>(filters.location);
+  if (location) {
+    sanitized.location = location;
   }
 
   return sanitized;
 };
-
-const getFilterSelectValue = (value?: string) =>
-  value && !shouldResetFilter(value) ? value : ALL_FILTER_VALUE;
 
 type InventoryWithCommodity = InventoryItem & { commodity: Commodity };
 
@@ -500,11 +497,11 @@ export default function InventoryPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-end">
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <Select
-                  value={getFilterSelectValue(filters.commodityId)}
+                  value={getAllSelectValue(filters.commodityId)}
                   onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      commodityId: shouldResetFilter(value) ? undefined : value,
+                      commodityId: normalizeSelectValue<string>(value),
                     }))
                   }
                 >
@@ -512,7 +509,7 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Commodity" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL_FILTER_VALUE}>
+                    <SelectItem value={ALL_SELECT_VALUE}>
                       All commodities
                     </SelectItem>
                     {commodityOptions.map((option) => (
@@ -523,11 +520,11 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={getFilterSelectValue(filters.warehouse)}
+                  value={getAllSelectValue(filters.warehouse)}
                   onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      warehouse: shouldResetFilter(value) ? undefined : value,
+                      warehouse: normalizeSelectValue<string>(value),
                     }))
                   }
                 >
@@ -535,7 +532,7 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Warehouse" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL_FILTER_VALUE}>
+                    <SelectItem value={ALL_SELECT_VALUE}>
                       All warehouses
                     </SelectItem>
                     {warehouses.map((warehouse) => (
@@ -546,11 +543,11 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={getFilterSelectValue(filters.location)}
+                  value={getAllSelectValue(filters.location)}
                   onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      location: shouldResetFilter(value) ? undefined : value,
+                      location: normalizeSelectValue<string>(value),
                     }))
                   }
                 >
@@ -558,7 +555,7 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL_FILTER_VALUE}>
+                    <SelectItem value={ALL_SELECT_VALUE}>
                       All locations
                     </SelectItem>
                     {locations.map((location) => (

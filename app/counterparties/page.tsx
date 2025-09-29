@@ -38,6 +38,7 @@ import {
 import type { CounterpartyTableRow } from "@/components/counterparties/counterparty-table";
 import { CounterpartyType, CreditRating } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
+import { ALL_SELECT_VALUE, normalizeSelectValue } from "@/lib/utils";
 
 const pageSize = 10;
 
@@ -55,8 +56,12 @@ function useDebouncedValue<T>(value: T, delay: number) {
 export default function CounterpartiesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | CounterpartyType>("all");
-  const [ratingFilter, setRatingFilter] = useState<"all" | CreditRating>("all");
+  const [typeFilter, setTypeFilter] = useState<
+    CounterpartyType | typeof ALL_SELECT_VALUE
+  >(ALL_SELECT_VALUE);
+  const [ratingFilter, setRatingFilter] = useState<
+    CreditRating | typeof ALL_SELECT_VALUE
+  >(ALL_SELECT_VALUE);
   const [page, setPage] = useState(0);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -73,6 +78,11 @@ export default function CounterpartiesPage() {
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
   const { toast } = useToast();
 
+  const normalizedTypeFilter =
+    normalizeSelectValue<CounterpartyType>(typeFilter);
+  const normalizedRatingFilter =
+    normalizeSelectValue<CreditRating>(ratingFilter);
+
   const {
     data: counterparties = [],
     isLoading,
@@ -80,8 +90,8 @@ export default function CounterpartiesPage() {
     refetch,
     error,
   } = useCounterparties({
-    type: typeFilter === "all" ? undefined : typeFilter,
-    rating: ratingFilter === "all" ? undefined : ratingFilter,
+    type: normalizedTypeFilter,
+    rating: normalizedRatingFilter,
     searchTerm: debouncedSearch ? debouncedSearch : undefined,
     limit: pageSize,
     offset: page * pageSize,
@@ -327,7 +337,9 @@ export default function CounterpartiesPage() {
                 <Select
                   value={typeFilter}
                   onValueChange={(value) =>
-                    setTypeFilter(value as "all" | CounterpartyType)
+                    setTypeFilter(
+                      value as CounterpartyType | typeof ALL_SELECT_VALUE,
+                    )
                   }
                   disabled={isLoading && !counterparties.length}
                 >
@@ -335,7 +347,7 @@ export default function CounterpartiesPage() {
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value={ALL_SELECT_VALUE}>All Types</SelectItem>
                     <SelectItem value={CounterpartyType.SUPPLIER}>
                       Supplier
                     </SelectItem>
@@ -348,7 +360,9 @@ export default function CounterpartiesPage() {
                 <Select
                   value={ratingFilter}
                   onValueChange={(value) =>
-                    setRatingFilter(value as "all" | CreditRating)
+                    setRatingFilter(
+                      value as CreditRating | typeof ALL_SELECT_VALUE,
+                    )
                   }
                   disabled={isLoading && !counterparties.length}
                 >
@@ -356,7 +370,9 @@ export default function CounterpartiesPage() {
                     <SelectValue placeholder="Rating" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value={ALL_SELECT_VALUE}>
+                      All Ratings
+                    </SelectItem>
                     <SelectItem value={CreditRating.AAA}>AAA</SelectItem>
                     <SelectItem value={CreditRating.AA}>AA</SelectItem>
                     <SelectItem value={CreditRating.A}>A</SelectItem>

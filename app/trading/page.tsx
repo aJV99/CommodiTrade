@@ -29,6 +29,7 @@ import { TradeStatus, TradeType } from "@prisma/client";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCommodities } from "@/lib/hooks/use-commodities";
+import { ALL_SELECT_VALUE, normalizeSelectValue } from "@/lib/utils";
 
 export default function TradingPage() {
   return (
@@ -44,8 +45,12 @@ export default function TradingPage() {
 
 function TradingPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<
+    TradeStatus | typeof ALL_SELECT_VALUE
+  >(ALL_SELECT_VALUE);
+  const [typeFilter, setTypeFilter] = useState<
+    TradeType | typeof ALL_SELECT_VALUE
+  >(ALL_SELECT_VALUE);
   const searchParams = useSearchParams();
   const router = useRouter();
   const commodityIdFilter = searchParams.get("commodityId") ?? undefined;
@@ -53,14 +58,18 @@ function TradingPageContent() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { data: commodities = [] } = useCommodities();
 
+  const normalizedStatusFilter =
+    normalizeSelectValue<TradeStatus>(statusFilter);
+  const normalizedTypeFilter = normalizeSelectValue<TradeType>(typeFilter);
+
   const {
     data: trades = [],
     isLoading,
     error,
     refetch,
   } = useTrades({
-    status: statusFilter !== "all" ? (statusFilter as TradeStatus) : undefined,
-    type: typeFilter !== "all" ? (typeFilter as TradeType) : undefined,
+    status: normalizedStatusFilter,
+    type: normalizedTypeFilter,
     commodityId: commodityIdFilter,
   });
 
@@ -257,24 +266,36 @@ function TradingPageContent() {
                   className="pl-10 w-full sm:w-64"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(
+                    value as TradeStatus | typeof ALL_SELECT_VALUE,
+                  )
+                }
+              >
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value={ALL_SELECT_VALUE}>All Status</SelectItem>
                   <SelectItem value="OPEN">Open</SelectItem>
                   <SelectItem value="EXECUTED">Executed</SelectItem>
                   <SelectItem value="SETTLED">Settled</SelectItem>
                   <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) =>
+                  setTypeFilter(value as TradeType | typeof ALL_SELECT_VALUE)
+                }
+              >
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value={ALL_SELECT_VALUE}>All Types</SelectItem>
                   <SelectItem value="BUY">Buy</SelectItem>
                   <SelectItem value="SELL">Sell</SelectItem>
                 </SelectContent>
@@ -344,8 +365,8 @@ function TradingPageContent() {
                             size="sm"
                             onClick={() => {
                               setSearchTerm("");
-                              setStatusFilter("all");
-                              setTypeFilter("all");
+                              setStatusFilter(ALL_SELECT_VALUE);
+                              setTypeFilter(ALL_SELECT_VALUE);
                               if (commodityIdFilter) {
                                 router.push("/trading");
                               }
@@ -422,8 +443,8 @@ function TradingPageContent() {
                     size="sm"
                     onClick={() => {
                       setSearchTerm("");
-                      setStatusFilter("all");
-                      setTypeFilter("all");
+                      setStatusFilter(ALL_SELECT_VALUE);
+                      setTypeFilter(ALL_SELECT_VALUE);
                       if (commodityIdFilter) {
                         router.push("/trading");
                       }
